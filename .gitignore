@@ -1,0 +1,31 @@
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*~
+
+# Python (for any helper scripts)
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Build artefacts (HTML rendered locally for preview)
+*.html
+!docs/**/*.html
+
+# Secrets — never commit
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.env
+.env
+secrets.yaml
+credentials.json
+api_credentials.json
