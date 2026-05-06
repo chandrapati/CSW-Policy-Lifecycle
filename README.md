@@ -51,9 +51,10 @@ breaking production.
                               ▼
    ┌────────────────────────────────────────────────────────────┐
    │ 2. ANALYSIS — analysis/                                    │
-   │    review · visual map · Quick Analysis (historical) ·     │
+   │    review · visual map · Quick Analysis (one hypothetical  │
+   │    flow) · Policy Experiments (replay past traffic) ·      │
    │    Live Analysis (current flows) · resolve conflicts       │
-   │    → published (p*) policy                                 │
+   │    → analyzed / published (p*) policy                      │
    └────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -108,7 +109,7 @@ CSW-Policy-Lifecycle/
 │   ├── README.md
 │   ├── 01-review-discovered-policies.md ← interpret what ADM produced
 │   ├── 02-policy-visual.md            ← Policy Visual Representation
-│   ├── 03-quick-analysis.md           ← Quick Analysis (historical flows)
+│   ├── 03-quick-analysis.md           ← Quick Analysis (single hypothetical flow) + Policy Experiments (past traffic)
 │   ├── 04-live-analysis.md            ← Live Policy Analysis (current flows)
 │   ├── 05-conversations.md            ← Conversations table + observations
 │   ├── 06-policy-complexities.md      ← priorities, cross-scope, effective consumer / provider
@@ -174,11 +175,14 @@ CSW-Policy-Lifecycle/
 4. **Run discovery →
    [`discovery/`](./discovery/README.md).** Prepare the scope,
    collect flow data, run ADM, refine the result, repeat.
-5. **Analyze before publishing →
+5. **Analyze before enforcing →
    [`analysis/`](./analysis/README.md).** Review what ADM
-   produced, run Quick Analysis against historical flows, run
-   Live Policy Analysis against current flows, resolve conflicts
-   and cross-scope edges, then publish (p\*).
+   produced, use Quick Analysis to debug specific hypothetical
+   flows, use Policy Experiments to replay past traffic against
+   the proposed policy, run Live Policy Analysis against current
+   flows, resolve conflicts and cross-scope edges, then take the
+   analyzed version through the Enable Policy Enforcement
+   wizard.
 6. **Roll out enforcement →
    [`enforcement/`](./enforcement/README.md).** Monitor →
    Simulate → Enforce, in waves, with rollback paths defined

@@ -3,6 +3,29 @@
 The single most important pattern in this entire repo. Read it
 before configuring any enforcement setting.
 
+> **Naming caveat.** "Monitor → Simulate → Enforce" is a
+> **methodology** for safe rollout, not a Cisco-named workflow
+> or a built-in three-state machine. It composes Cisco features
+> that *are* documented:
+>
+> - **Monitor** = agents in
+>   [Deep Visibility](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html)
+>   + cluster-side
+>   [Live Policy Analysis](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#live-policy-analysis).
+> - **Simulate** = analyze a published version *without* enabling
+>   enforcement (or via a non-enforcing agent type if your release
+>   exposes one — verify the agent-type names available in your
+>   release).
+> - **Enforce** = the documented
+>   [Enable Policy Enforcement](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#enable-policy-enforcement)
+>   flow with the
+>   [Policy Enforcement Wizard](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#policy-enforcement-wizard).
+>
+> The pattern is what disciplined teams do; the building blocks
+> are Cisco's. If your release exposes different agent-mode names
+> (e.g. variants of "visibility-only" or a preview state), use
+> those — the methodology still applies.
+
 ---
 
 ## Why this pattern exists
@@ -52,11 +75,11 @@ events in addition to cluster-level signals.
 
 | | |
 |---|---|
-| Agent mode | Simulate / Preview (depends on release; *not* yet `Enforcement`) |
-| Host firewall | **Updated** to reflect the policy |
+| Agent mode | A non-enforcing mode that pre-stages rules where your release supports it (names vary — verify in your agent documentation); otherwise stay in Deep Visibility while running cluster-side analysis on the published version |
+| Host firewall | **Updated** to reflect the policy *only if your release's agent supports a pre-stage mode*; otherwise unchanged |
 | Cluster behaviour | Evaluates flows, reports would-be-rejected |
-| Agent behaviour | Reports local would-be-rejected from the agent's perspective |
-| Risk to traffic | None — agent does not act, only reports |
+| Agent behaviour | Reports local would-be-rejected from the agent's perspective (when in a pre-stage mode) |
+| Risk to traffic | None — agent does not block, only reports |
 
 **Why this phase exists separately from Monitor.** Monitor
 catches issues the cluster sees; Simulate catches issues the

@@ -132,8 +132,8 @@ cause isn't immediate:
 | Option | When |
 |---|---|
 | Add a temporary specific Allow rule with a short expiry comment | The flow is legitimate, you can identify consumer + provider, but root cause needs more time |
-| Pause Policy Updates on one side while you investigate | If a recent push is suspected and you want to halt further changes |
-| Disable enforcement on the affected workspace | High-impact production issue, time-bound investigation needed |
+| Pause Policy Updates (cluster-wide) while you investigate | Only when you genuinely need to halt rule pushes for *all* scopes; this is global and site-admin-only ([Pause Policy Updates](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#pause-policy-updates)) |
+| Disable enforcement on the affected workspace (red **Stop Policy Enforcement** button on the workspace's Policy Enforcement page) | High-impact production issue, time-bound investigation needed |
 
 Prefer the smallest mitigation that resolves the impact.
 Disable is the heaviest hammer; reach for it last among these.

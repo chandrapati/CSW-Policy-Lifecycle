@@ -1,9 +1,13 @@
-# 10 — Pause Policy Updates and Emergency Disable
+# 10 — Pause Policy Updates and Disable Policy Enforcement
 
-Two distinct controls — easy to confuse. Both reduce the
-"surface area" of a problem; they do different things.
+Two distinct controls that practitioners often confuse. Both
+reduce the impact of a problem; they do **very** different
+things. The corrections in this page reflect the actual Cisco
+documentation — earlier framing of "Pause" as a per-workspace
+batching tool was incorrect.
 
-> **Cisco source.** [Manage Policy Lifecycle — Pause Policy Updates](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#pause-policy-updates)
+> **Cisco source.**
+> [Pause Policy Updates](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#pause-policy-updates)
 > and [Disable Policy Enforcement](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#disable-policy-enforcement).
 
 ---
@@ -12,82 +16,113 @@ Two distinct controls — easy to confuse. Both reduce the
 
 | | **Pause Policy Updates** | **Disable Policy Enforcement** |
 |---|---|---|
-| What it does | Freezes the *push* of updated policy to agents | Removes enforcement; agents stop blocking based on this workspace's policy |
-| Host firewall state | Whatever was last pushed before pause; **still enforcing** | Reverts to the agent's pre-enforcement / Visibility state |
-| Use when | Authoring multiple changes, want to push them as a batch | Production is breaking and you need to take CSW out of the path **now** |
-| Reversible | Yes — Resume Updates pushes the latest published policy | Yes — Re-enable enforcement; goes back through Simulate → Enforce per [`04-rollout-pattern.md`](./04-rollout-pattern.md) |
-| Audit weight | Low | High — this is an incident-response action |
+| Scope of effect | **GLOBAL** — pauses rule updates for ALL workloads in ALL scopes | Per workspace (or via multi-scope wizard) |
+| Required role | **Site admin or customer-support** privileges | Workspace owner / scope admin |
+| What changes on the host | Nothing immediately — agents keep enforcing whatever was last pushed | Agents revert to pre-enforcement state (typically Deep Visibility); CSW-managed firewall rules removed |
+| Use when | You need to halt all CSW-driven firewall changes across the entire cluster (e.g. cluster-side investigation, suspected propagation issue) | Production is breaking and you need to take CSW out of the path on a specific workspace |
+| Reversibility | Yes — toggle Policy Updates back on and the latest published policy is pushed | Yes — re-enable enforcement; goes back through the standard analyze-then-enforce flow |
+| Audit weight | High — global change | High — incident-response action |
 
-If in doubt under incident pressure: **disable**, then triage,
-then re-enable through the normal phased flow.
+If in doubt under incident pressure: **disable the affected
+workspace**, then triage, then re-enable through the normal
+flow.
 
 ---
 
-## Pause Policy Updates
+## Pause Policy Updates — what it actually is
 
-Use case: you're about to make several related policy edits and
-you want them to land on agents as one push, not several.
+Per Cisco's [Pause Policy Updates](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#pause-policy-updates),
+this is a **cluster-wide** (not per-workspace) control with the
+warning:
 
-### Procedure
-
-1. Open *Workspace → Enforce → Pause Policy Updates*.
-2. Make edits (multiple v\* iterations are fine).
-3. Run Quick Analysis after each edit; Live Analysis as appropriate.
-4. Publish the final v\* → p\*.
-5. *Resume Policy Updates*. The cluster pushes the latest p\*
-   to the agents.
-
-While paused:
-
-- Agents continue enforcing the **previously pushed** policy.
-- New edits accumulate but don't reach the host.
-- Health and flow telemetry are unaffected.
+> *"This option pauses policy updates for ALL workloads in ALL
+> scopes."*
+> *"This feature requires site admin or customer support
+> privileges."*
 
 ### When pause is the right answer
 
-| Scenario | Why pause |
+| Scenario | Why a global pause is right |
 |---|---|
-| Coordinated change across multiple workspaces | Pause all of them, edit, publish, resume together |
-| Iterating on a single workspace during a maintenance window | Avoid intermediate-state pushes that could confuse on-call observers |
-| Long-running ADM iteration where intermediate v\* shouldn't reach hosts | Already true (v\* never reaches hosts); pause is unnecessary here — useful only if the intermediate state is *published* |
+| Suspected cluster-side propagation issue affecting many workspaces | Halt rule updates everywhere while you investigate |
+| Maintenance on the cluster's enforcement plane | Avoid in-flight pushes mid-maintenance |
+| Multi-scope coordinated change with an unusually wide blast radius | Pause everything; do the change; resume |
 
 ### When pause is *not* the right answer
 
 | Scenario | Better choice |
 |---|---|
-| Production is broken and you need to revert | **Disable** (this page) or **revert** ([`09-rollback-and-revert.md`](./09-rollback-and-revert.md)) |
-| You've published a bad p\* by accident | Revert to the previous good p\* |
-| Agent-level issue (push isn't reaching hosts) | Investigate agent health; pause won't help |
+| You want to batch several edits on **one** workspace | There's no per-workspace pause. Just author the edits in the workspace; v\* iterations don't push to agents until you publish + enforce |
+| Production is broken on one workspace | Disable that workspace's enforcement (this page) or revert it ([`09-rollback-and-revert.md`](./09-rollback-and-revert.md)) |
+| Agent-level issue (push isn't reaching some hosts) | Investigate agent health; pause won't help |
+
+### Procedure
+
+Per Cisco:
+
+1. Navigate to *Defend → Enforcement*.
+2. Click the status indicator beside **Policy Updates**.
+3. Read and accept the caution dialog.
+
+Site admin / customer-support role required. Use only when you
+genuinely need to halt updates for the whole tenant.
 
 ---
 
 ## Disable Policy Enforcement
 
 Use case: production is breaking; the simplest correct action is
-to take CSW out of the enforcement path.
+to take CSW out of the enforcement path on the affected
+workspace.
 
-### Procedure (incident path — fast version)
+### Procedure (single workspace — the incident path)
 
-1. Open *Workspace → Enforce → Disable Enforcement*.
-2. Confirm the population (the entire scope, or a subset).
-3. Click *Disable*.
+Per Cisco's [Disable Policy Enforcement — single scope](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#disable-policy-enforcement):
 
-The cluster pushes the disable to agents. Agents remove the
-CSW-managed firewall rules and revert to their pre-enforcement
-state — typically Deep Visibility.
+> *"Navigate to the Policy Enforcement page for the scope's
+> primary workspace and click the red **Stop Policy Enforcement**
+> button. This writes new firewall rules to assets in the scope
+> based on enforced policies in ancestor workspaces. A Label
+> Flag with an 'x' will be created on the time series chart."*
 
-Push time is seconds–minutes. Application traffic that was
-being blocked due to policy starts flowing again as agents
-process the update.
+So for a single workspace under incident pressure:
+
+1. Open the affected primary workspace.
+2. Go to its Policy Enforcement page.
+3. Click the **red Stop Policy Enforcement button**.
+
+The cluster pushes the change to agents. Two important
+behaviours:
+
+- The agent doesn't go back to "no rules" — it falls back to
+  whatever rules **ancestor scopes' enforced workspaces**
+  define. If an ancestor workspace has Catch-All Deny rules
+  applied to descendants, those still apply.
+- A Label Flag with an 'x' appears on the workspace's time
+  series chart so the action is visible in subsequent triage.
+
+### Procedure (multiple scopes simultaneously)
+
+Per Cisco:
+
+> *"Follow the procedure for enforcing policy in multiple scopes
+> simultaneously, as described in Enable Policy Enforcement.
+> On the Select Version page of the wizard, click Select a
+> version and choose **Disable enforcement**."*
+
+So multi-scope disable is a special case of the multi-scope
+Enable wizard — pick "Disable enforcement" instead of a
+version.
 
 ### What disable does *not* do
 
-- Disable does **not** delete the workspace's policy. The p\* /
-  v\* history is preserved.
-- Disable does **not** change the workspace's published version.
-- Disable does **not** uninstall agents.
-- Disable does **not** stop flow telemetry — agents continue
-  reporting flows, just not enforcing.
+- **Not** delete the workspace's policy. The version history is
+  preserved.
+- **Not** uninstall agents.
+- **Not** stop flow telemetry — agents continue reporting flows,
+  just not enforcing this workspace's policy.
+- **Not** override ancestor-scope enforcement — ancestor rules
+  still apply (see above).
 
 ### After disable — the calm phase
 
@@ -96,41 +131,42 @@ Once production is recovering:
 1. Confirm with app owners / on-call that the issue's resolved.
 2. Open Live Policy Analysis on the workspace — what *would*
    have been rejected if enforcement were on right now?
-3. Diff the last good p\* against the bad p\* to identify which
-   rule(s) caused the issue.
+3. Diff the last good version against the bad one to identify
+   which rule(s) caused the issue (Policy Diff — see
+   [`08-policy-versions.md`](./08-policy-versions.md)).
 4. Author a fix in a new v\*.
-5. Publish.
-6. Re-enable through the Monitor → Simulate → Enforce flow per
-   [`04-rollout-pattern.md`](./04-rollout-pattern.md). **Don't
-   skip Simulate** because of post-incident pressure to "get
-   back to enforcing." The whole reason this happened is that
-   something wasn't caught in Simulate.
+5. Analyze (Quick Analysis, Policy Experiments, Live Policy
+   Analysis).
+6. Re-enable through the rollout pattern in
+   [`04-rollout-pattern.md`](./04-rollout-pattern.md).
 
 ---
 
 ## API alternative — the scripted incident path
 
-For very high-availability deployments, **wire the disable
-into your incident-response automation** ahead of time:
+For very high-availability deployments, **wire enforcement
+disable into your incident-response automation** ahead of time.
+The OpenAPI exposes enforcement enable / disable endpoints —
+exact paths depend on your release; consult the
+[Secure Workload OpenAPIs chapter](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/secure-workload-openapis.html)
+for your release. See [`../api/03-enforcement-toggle-api.md`](../api/03-enforcement-toggle-api.md)
+for the pattern.
 
-- A button or a simple script that calls
-  `/openapi/v1/applications/{app_id}/disable_enforce` for the
-  affected workspace.
-- A runbook that documents which workspace IDs map to which
-  business apps so on-call can disable the right one without
-  guessing.
+The pre-built script needs:
 
-See [`../api/03-enforcement-toggle-api.md`](../api/03-enforcement-toggle-api.md)
-for the request shape.
+- A button or chatops command (`/csw-disable <workspace>`).
+- A runbook entry mapping business apps to workspace IDs.
+- A narrowly-scoped API key with only the enforcement-toggle
+  capability (per [`../api/01-authentication.md`](../api/01-authentication.md)).
 
 ---
 
 ## Rehearsal — the underrated step
 
-Disable is the single most important control in this folder.
+Disable is the single most important control on this page.
 **Rehearse it.** In a non-production workspace:
 
-1. Pick a Friday afternoon.
+1. Pick a maintenance window.
 2. Walk on-call through the procedure (UI path + API).
 3. Time how long from "we need to disable" to "production is
    recovering."

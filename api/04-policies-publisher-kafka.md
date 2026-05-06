@@ -1,72 +1,117 @@
 # 04 — Policies Publisher (Kafka)
 
-CSW can publish policy events to a **Kafka stream** so that
-downstream systems — host firewalls outside CSW, network
-controllers, custom enforcers — can consume policy as it changes
-without polling the OpenAPI.
+CSW exposes published network policies on a **Kafka topic** so
+that third-party enforcement code can consume policy as it
+changes — typically to drive enforcement on appliances (load
+balancers, firewalls) where CSW doesn't have an agent.
 
 > **Cisco source.** [Manage Policy Lifecycle — Policies Publisher](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#policies-publisher).
 
 ---
 
-## What it is
+## What it is — exactly
 
-Policies Publisher is a CSW-side **Kafka producer** that emits a
-structured event whenever a workspace publishes (or a policy
-changes in any way that affects the published surface). External
-**clients** subscribe to the stream and act on the events.
+Direct quote from the User Guide:
+
+> *"Policies Publisher is an advanced Cisco Secure Workload
+> feature allowing third-party vendor to implement their own
+> enforcement algorithms that are optimized for network
+> appliances such as load balancers or firewalls. This feature
+> is realized by publishing defined policies to a Kafka instance
+> residing within Secure Workload cluster and by providing
+> customers with Kafka client certificates, which allows
+> third-party vendor code to retrieve policies from Kafka and
+> to translate them into their network appliances configuration
+> appropriately."*
+
+Two key facts to internalise:
+
+1. The Kafka instance lives **inside** the Secure Workload
+   cluster — it's not a Kafka you provide. You connect to CSW's
+   Kafka.
+2. Cisco's documentation describes the procedure with **Java
+   on Linux**. The reference implementation is in Java
+   (see below).
 
 ```
    CSW cluster                                  Downstream client
-       │                                              │
-       │  publish v17 → p4                            │
-       │                                              │
-       │  ─── policy update event ───►   Kafka topic  │
-       │                                              │
-       │                                              ▼
-       │                                       reconcile local
-       │                                       firewall / table
+   ┌──────────────┐                                   │
+   │  Internal    │                                   │
+   │  Kafka       │ ─── policy update event ─►        │
+   │  (CSW-       │                                   ▼
+   │   hosted)    │                            translate to
+   └──────────────┘                            appliance config
 ```
 
-Common downstream consumers:
+---
 
-- A **non-CSW host firewall** that mirrors a subset of policy
-  (e.g. for legacy systems where the CSW agent isn't deployed).
-- A **network controller** (SDN, firewall manager) consuming
-  policy as input to its own configuration plane.
+## Common downstream consumers
+
+- A **load balancer** (e.g. F5) that programs equivalent ACLs
+  from CSW policy.
+- A **network firewall** outside the CSW agent footprint that
+  mirrors a subset of policy.
 - A **custom enforcer** for a platform CSW doesn't natively
   support.
 - An **observability pipeline** that wants policy events in the
-  same time-series store as flow events.
+  same store as flow events. (Often overkill — see "When not to
+  use" below.)
+
+---
+
+## Granularity — per root scope, not per workspace
+
+Per Cisco:
+
+> *"Each policy contains all the items belonging to one root
+> scope."*
+
+So a downstream consumer subscribes to **the policy stream for
+a root scope** — not per individual workspace. The published
+message contains *all* enforced policy for that root scope as a
+single coherent snapshot.
+
+If no workspace with enforcement enabled exists for the root
+scope, Cisco emits a **default ALLOW** policy:
+
+> *"If no workspace with enforcement enabled exists for the
+> root scope, a default policy of ALLOW is written to the
+> produced policy."*
 
 ---
 
 ## Prerequisites
 
-> **Source.** The Cisco section
-> [Policies Publisher — Prerequisites](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#prerequisites)
-> is the canonical source.
+Per Cisco's [Policies Publisher prerequisites](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#policies-publisher),
+the documented stack is Java on Linux:
 
-| Prerequisite | Notes |
+| Component | Cisco-stated version (verify against your release) |
 |---|---|
-| Kafka broker(s) reachable from CSW | Cluster-side network reachability; TLS strongly recommended |
-| Kafka topic for policy events | Configurable; usually one per tenant or one per consumer group |
-| **Client certificates** for the consumer | CSW issues per-consumer certs for mTLS |
-| Reasonable retention on the topic | Long enough that a brief consumer outage doesn't lose state |
+| [Apache Kafka Clients](https://kafka.apache.org/) | `kafka-clients-1.0.0.jar` |
+| [Protocol Buffers Core](https://github.com/protocolbuffers/protobuf) | `protobuf-java-3.4.1.jar` |
+
+Check the chapter for your release; specific JAR versions may
+have moved.
 
 ---
 
 ## Getting Kafka client certificates
 
-Per
-[Getting Kafka Client Certificates](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#getting-kafka-client-certificates):
+Per Cisco's exact procedure ([Getting Kafka Client Certificates](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#getting-kafka-client-certificates)):
 
-1. Open the cluster's Kafka client config (UI path is
-   release-dependent; consult the chapter).
-2. Generate a client cert / key pair tied to the consumer.
-3. Store the cert + key in your secret manager.
-4. Configure the downstream client to authenticate to Kafka
-   using mTLS with the issued cert.
+1. **Enable enforcement on the workspace first.** Per Cisco:
+   *"Perform policies enforcement as described in Enforce
+   Policies. This first step is necessary as it creates a Kafka
+   topic that is associated with active scope."* Without
+   enforcement enabled, there's no topic for you to subscribe
+   to.
+2. Navigate to the **Data Taps** tab in the cluster's
+   management UI.
+3. Download Kafka client certificates by clicking the download
+   button under the **Actions** column.
+4. **Select "Java Keystore" format** in the download dialog.
+5. Configure your client to authenticate to Kafka using the
+   keystore.
 
 These certs **expire** — manage their lifecycle the same way
 you'd manage any other certificate (renewal cadence, rotation
@@ -74,39 +119,98 @@ plan, monitoring approaching expiry).
 
 ---
 
-## The protobuf schema
+## The protobuf data model
 
-Policy events are serialized as **Protocol Buffers**. The
-schema is published with the User Guide chapter — see
-[Protobuf Definition File](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#protobuf-definition-file)
-and [Data Model of Secure Workload Network Policy](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#data-model-of-secure-workload-network-policy).
+Per Cisco's [Data Model of Secure Workload Network Policy](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#data-model-of-secure-workload-network-policy):
 
-Key concepts:
+> *"A Secure Workload Network Policy as modeled in protobuf
+> consists of a list of **InventoryGroups**, a list of
+> **Intents** and a **CatchAll** policy."*
 
-| Field group | Carries |
+| protobuf concept | What it represents |
 |---|---|
-| Header | Tenant, workspace, version (p\*), event timestamp |
-| Inventory items | Workloads / sets that the policy references, with their resolved IPs at the time of publish |
-| Policies | Consumer / provider / service / action / rank for each rule |
-| Catch-All | The workspace-level Catch-All semantics |
+| `InventoryGroup` | A named group of `InventoryItem`s. Each `InventoryItem` represents a CSW entity (server, appliance) by its network address — singular IP, subnet, or address range. |
+| `Intent` | A rule: action (ALLOW or DENY) when a network flow matches the given consumer's `InventoryGroup`, the provider's `InventoryGroup`, and the network protocol/port. |
+| `CatchAll` | The catch-all action defined for the root scope. |
+| `TenantNetworkPolicy.ScopeInfo` | Metadata about which root scope this policy is for (only present in the first fragment if a message is split — see below). |
 
-A consumer doesn't need every field; project to what's relevant
-for your enforcement plane.
+The schema and full field reference are in
+[Protobuf Definition File](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#protobuf-definition-file).
+Generate language bindings from it for your client language.
 
 ---
 
-## A reference consumer in outline
+## How updates arrive — `KafkaUpdate` semantics
 
-Cisco publishes a [Reference Implementation of Secure Workload Network Policies Client](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#reference-implementation-of-secure-workload-network-policies-client)
-that's worth reading before writing your own. The skeleton:
+Per Cisco:
+
+> *"When an enforcement is triggered by the users or by a
+> change of inventory groups, Secure Workload backend sends a
+> **full snapshot** of defined network policies to Kafka as a
+> sequence of messages that are represented as `KafkaUpdate`s."*
+
+So **every update is a full snapshot** of the root scope's
+policy. There is no native delta protocol — your consumer
+replaces its local view on each `KafkaUpdate`.
+
+### Message fragmentation
+
+> *"In case `KafkaUpdate` message size is greater than 10MB,
+> Secure Workload backend splits this message into multiple
+> fragments, each of size 10MB. If there is multiple fragments,
+> only the first fragment has the `ScopeInfo` field of
+> `TenantNetworkPolicy`. The `ScopeInfo` will be set to nil in
+> the remaining fragments of `KafkaUpdate` message."*
+
+So a consumer **must**:
+
+- Detect multi-fragment messages (presence/absence of
+  `ScopeInfo`).
+- Reassemble fragments before applying the policy.
+- Refer to comments in the `tetration_network_policy.proto`
+  file for the exact reassembly logic.
+
+---
+
+## Reference implementation (Java)
+
+Per Cisco's [Reference Implementation of Secure Workload
+Network Policies Client](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#reference-implementation-of-secure-workload-network-policies-client),
+Cisco maintains a reference implementation **in Java** that
+handles Kafka subscription and protobuf parsing for you:
+
+- **Repository:**
+  [`tetration-exchange/pol-client-java`](https://github.com/tetration-exchange/pol-client-java)
+  (URL exact at time of writing — confirm in the chapter for
+  your release).
+- **Plug-in interface:**
+  [`PolicyEnforcementClient`](https://github.com/tetration-exchange/pol-client-java/blob/master/src/main/java/com/tetration/network_policy/enforcement/PolicyEnforcementClient.java)
+  is what you implement to translate `Intent`s into your
+  appliance's configuration.
+
+**Recommendation:** start by reading and (where possible)
+extending the reference implementation rather than writing a
+client from scratch. The fragment-reassembly and reconnect
+logic is already correct in the reference.
+
+---
+
+### A non-Java client outline (illustrative)
+
+If you must write the client in another language, you generate
+language bindings from the protobuf and use a native Kafka
+client. The following Python skeleton is **illustrative only**
+— Cisco's documented stack is Java, the schema bindings come
+from the `.proto` file, and fragment reassembly is your
+responsibility:
 
 ```python
 from kafka import KafkaConsumer
-import policy_pb2  # generated from the protobuf definition
+import tetration_network_policy_pb2  # generated from the .proto
 
 consumer = KafkaConsumer(
-    "csw-policies",                                   # topic name
-    bootstrap_servers=["kafka.example.com:9093"],
+    "<topic-name-from-Data-Taps>",
+    bootstrap_servers=["<broker-from-Data-Taps>"],
     security_protocol="SSL",
     ssl_cafile="/etc/csw/kafka/ca.crt",
     ssl_certfile="/etc/csw/kafka/client.crt",
@@ -115,37 +219,42 @@ consumer = KafkaConsumer(
     group_id="my-enforcer",
 )
 
+# WARNING: this skeleton does NOT implement fragment reassembly.
+# Real clients MUST handle KafkaUpdate fragments per the .proto comments.
 for msg in consumer:
-    event = policy_pb2.PolicyUpdate()
-    event.ParseFromString(msg.value)
-    reconcile_local_firewall(event)
+    update = tetration_network_policy_pb2.KafkaUpdate()
+    update.ParseFromString(msg.value)
+    if update.HasField("scope_info"):
+        # first fragment of a (possibly multi-fragment) snapshot
+        ...
+    else:
+        # continuation fragment
+        ...
 ```
 
-`reconcile_local_firewall` is the application-specific bit —
-how your downstream system applies the new policy.
+The reference Java implementation is the safer starting point.
 
 ---
 
 ## Reconciliation discipline
 
-Two patterns:
+Because every `KafkaUpdate` is a full snapshot, the natural
+pattern is **idempotent replace**:
 
-### Pattern A — full snapshot per event
+1. Receive (and reassemble fragments of) a `KafkaUpdate`.
+2. Build the desired local config from `InventoryGroups +
+   Intents + CatchAll`.
+3. **Diff** vs. current local config; apply the minimum set of
+   changes to converge.
+4. Record what was applied.
 
-Every event carries a complete view of the workspace's
-published policy. The consumer replaces its local view with
-the event's view on each message. Simple, idempotent, robust to
-missed messages (the next event will be a complete snapshot).
+If the consumer is restarted or falls behind, it just consumes
+the next snapshot and converges — no separate recovery path
+needed.
 
-### Pattern B — delta-only
-
-The event carries only the diff vs. the previous version. The
-consumer applies the delta. More bandwidth-efficient but fragile
-to missed messages — must reconcile from a full snapshot
-periodically.
-
-**Default to Pattern A** unless bandwidth is a real constraint.
-The robustness is worth the volume.
+Use the timestamp / version fields in the message to drop stale
+events if the topic delivers out-of-order across restart, or to
+sequence multiple snapshots received during catch-up.
 
 ---
 
@@ -154,28 +263,30 @@ The robustness is worth the volume.
 | Concern | Mitigation |
 |---|---|
 | Consumer falls behind / disconnects | Topic retention long enough to recover; alert on lag > N seconds |
-| Consumer applies an old event after a newer one | Use the event's published version (p\*) number to drop stale events |
-| Kafka cert expiring | Monitor expiry; rotate ahead of time |
-| Schema evolution between releases | Use protobuf's compatibility rules; consumer should ignore unknown fields gracefully |
-| Sensitive data in events | Inventory items contain workload identity; treat the topic as security-relevant — restrict who can subscribe |
+| Consumer applies an old snapshot after a newer one | Use the `KafkaUpdate` ordering / version fields to drop stale events |
+| Kafka cert expiring | Monitor expiry; rotate ahead of time; the cert is downloaded from the Data Taps tab |
+| Schema evolution between releases | Use protobuf's compatibility rules; consumer should ignore unknown fields |
+| Multi-fragment messages dropped between fragments | Track ScopeInfo + reassembly state; resync on a new ScopeInfo-bearing fragment |
+| Sensitive data in events | InventoryGroups carry workload identity; restrict topic subscription accordingly |
 
 ---
 
 ## Caveats
 
 The [Caveats](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#caveats)
-sub-section in the chapter covers known limitations of the
-publisher. Read it as part of the design phase.
+sub-section in the chapter lists known limitations of the
+publisher (e.g. behaviour on first enforcement, default-policy
+edge cases). Read it during design.
 
 ---
 
 ## When *not* to use Policies Publisher
 
 - For pure observability ("we want to see policy changes in our
-  log pipeline"), the Activity Log API or audit feed is usually
-  enough — Kafka is heavier than needed.
-- For automation that *acts on* CSW (e.g. GitOps reconciliation),
-  you're calling OpenAPI in the other direction. See
+  log pipeline"), the Activity Log / Enforcement History APIs
+  are usually enough — Kafka is heavier than needed.
+- For automation that *acts on* CSW (e.g. GitOps
+  reconciliation), you call OpenAPI in the other direction. See
   [`05-gitops-pattern.md`](./05-gitops-pattern.md).
 - For one-off integrations, a polling consumer of the OpenAPI
   is simpler.
@@ -184,8 +295,12 @@ publisher. Read it as part of the design phase.
 
 ## See also
 
-- [`01-authentication.md`](./01-authentication.md) (for OpenAPI;
-  Kafka uses its own mTLS)
+- [`01-authentication.md`](./01-authentication.md) (for
+  OpenAPI; Kafka uses its own mTLS via Data Taps)
 - [`02-openapi-policies.md`](./02-openapi-policies.md)
 - [`05-gitops-pattern.md`](./05-gitops-pattern.md)
 - Cisco: [Policies Publisher](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#policies-publisher)
+- Cisco: [Getting Kafka Client Certificates](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#getting-kafka-client-certificates)
+- Cisco: [Data Model of Secure Workload Network Policy](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#data-model-of-secure-workload-network-policy)
+- Cisco: [Reference Implementation of Secure Workload Network Policies Client](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#reference-implementation-of-secure-workload-network-policies-client)
+- GitHub (verify URL for your release): [tetration-exchange/pol-client-java](https://github.com/tetration-exchange/pol-client-java)

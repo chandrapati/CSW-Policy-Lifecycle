@@ -70,15 +70,34 @@ the secret was exposed.
 
 ## Signing requests
 
-The OpenAPI signs each request with HMAC-SHA256 over a canonical
-string built from the request path, query, body hash, and
-timestamp. The Cisco-supplied Python SDK (and the curl helpers
-in the docs) handle the canonicalization.
+The OpenAPI signs each request with an HMAC-based signature over
+a canonical string built from the request path, query, body
+hash, and timestamp.
 
-A minimal Python example using the official SDK pattern:
+> **Authoritative source.** The exact algorithm, canonical
+> string layout, and header names live in the
+> [Secure Workload OpenAPIs — Authentication](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/secure-workload-openapis.html#authentication)
+> section. Do not crib the canonicalization from this page;
+> consult that section for your release.
+
+### Using a Cisco-provided helper
+
+Cisco's OpenAPIs chapter typically references a **Python helper
+library** that handles signing for you so you don't have to
+implement the canonical string manually. The exact module name
+and import path depend on your release — the chapter is the
+authoritative source for *which* library and *how to install
+it*. The library historically shipped under the name
+`tetpyclient` (Tetration-era), and the API may also be wrapped
+by a newer client in your release. **Check the OpenAPIs chapter
+for your release before pip-installing anything.**
+
+A skeleton — illustrative; replace the import with whatever
+your release ships:
 
 ```python
-from tetpyclient import RestClient
+import os
+# from <cisco-helper-package> import RestClient   <-- name per your release
 
 CLUSTER = "https://csw.example.com"
 API_KEY_ID = os.environ["CSW_API_KEY"]

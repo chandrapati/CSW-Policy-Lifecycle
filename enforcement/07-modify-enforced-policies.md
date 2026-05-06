@@ -31,42 +31,52 @@ the right pattern.
 ## The safe modify-while-enforcing flow
 
 ```
-   Enforced workspace (current p_n)
+   Enforced workspace (currently enforcing v_n)
             │
             ▼
-   Edit policy in workspace (creates v_n+1)
+   Edit policy in workspace (creates v_(n+1))
             │
             ▼
-   Quick Analysis on v_n+1 (historical)
+   Quick Analysis (single hypothetical flow tests)
+   Policy Experiments (replay past traffic against v_(n+1))
             │
             ▼
-   Live Analysis on v_n+1 (current; pre-publish)
+   Live Analysis on v_(n+1) (continuous, pre-enforce)
             │
             ▼
-   Publish (v_n+1 → p_n+1)
+   Re-run Enable Policy Enforcement wizard,
+     - select v_(n+1) on the Select Version page
+     - confirm Policy Diff vs. v_n
             │
             ▼
-   Enforcement Wizard:
-     - choose mode (Simulate first, then Enforce)
-     - confirm Policy Diff vs. p_n
+   (Optional) "Simulate" via a non-enforcing agent type
+   if your release supports one  ── 24–72 h depending on risk
             │
             ▼
-   Simulate p_n+1 for 24–72 h, depending on risk
-            │
-            ▼
-   Enforce p_n+1
+   Enforce v_(n+1)
             │
             ▼
    Verify (file 06)
 ```
 
+> **Naming reminders.** Per
+> [About Policy Versions (v\* and p\*)](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#about-policy-versions-v-and-p),
+> when you enforce v_(n+1) the **enforced version number is
+> n+1** — it mirrors the v\* number you picked, not a separate
+> p\* sequence. See
+> [`08-policy-versions.md`](./08-policy-versions.md).
+>
+> **Quick Analysis** tests a single hypothetical flow. **Policy
+> Experiments** replays past traffic. They're separate features
+> — see [`../analysis/03-quick-analysis.md`](../analysis/03-quick-analysis.md).
+
 Key points:
 
-- **Always re-run Quick Analysis** after the edit — fast, cheap,
-  catches the bulk of issues.
-- **Don't skip the Simulate phase** for production changes,
-  even small ones. The workspace is already enforcing; the cost
-  of a bad change is real.
+- **Always re-run Quick Analysis (and Policy Experiments)** after
+  the edit — fast, cheap, catches the bulk of issues.
+- **Don't skip the pre-enforce analysis window** for production
+  changes, even small ones. The workspace is already enforcing;
+  the cost of a bad change is real.
 - **Compare via Policy Diff** — see [`08-policy-versions.md`](./08-policy-versions.md).
   A diff with surprises is the strongest signal that the
   proposed change isn't what you intended.
@@ -89,20 +99,26 @@ A change that "feels small" but is a Catch-All flip is
 
 ---
 
-## "Pause Policy Updates" — the controlled freeze
+## Batching multi-change updates
 
-When you need to make many changes but want to defer policy
-push to the agents until you're ready:
+A common ask: *"can we hold a batch of edits in one workspace
+and push them to agents together?"* Worth being precise about
+what CSW supports:
 
-1. Pause Policy Updates on the workspace (per
-   [`10-pause-and-emergency-disable.md`](./10-pause-and-emergency-disable.md)).
-2. Make the edits in the workspace.
-3. Run Quick + Live Analysis.
-4. Resume Policy Updates — the next push installs the new
-   policy on the agents.
+- **v\* edits don't push to agents.** Editing the workspace
+  creates new v\* iterations. The host firewall doesn't change
+  until you re-run the **Enable Policy Enforcement** wizard with
+  the new version. So in practice, batching is the natural
+  default — author all the edits in the workspace, analyze, then
+  do **one** wizard run when ready.
+- **There is no per-workspace "Pause Policy Updates" feature.**
+  CSW's documented [Pause Policy Updates](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#pause-policy-updates)
+  is **global** (all scopes / all workloads) and **site-admin
+  only** — it's not for routine batching. Use it only when you
+  need to halt updates *cluster-wide*. See
+  [`10-pause-and-emergency-disable.md`](./10-pause-and-emergency-disable.md).
 
-Useful when shepherding a coordinated multi-change update
-through a maintenance window.
+For routine multi-change updates: edit, analyze, enforce — once.
 
 ---
 

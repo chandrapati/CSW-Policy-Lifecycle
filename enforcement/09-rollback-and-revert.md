@@ -1,11 +1,17 @@
 # 09 — Rollback and Revert
 
-CSW supports reverting an enforced workspace to an earlier
-published version. This is the primary policy-level rollback
-mechanism — distinct from emergency-disable (covered in
-[`10-pause-and-emergency-disable.md`](./10-pause-and-emergency-disable.md)).
+CSW supports rolling enforced policy on a workspace back to an
+earlier version. Per Cisco's documentation, **revert is not a
+separate UI action — it's the same Enable Policy Enforcement
+flow, just with an older version selected**.
 
-> **Cisco source.** [Manage Policy Lifecycle — Revert Enforced Policies to an Earlier Version](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#revert-enforced-policies-to-an-earlier-version).
+> **Cisco source.** Direct quote from
+> [Manage Policy Lifecycle — Revert Enforced Policies to an
+> Earlier Version](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#revert-enforced-policies-to-an-earlier-version):
+>
+> *"To roll back enforced policies to a previous version,
+> follow one of the processes that are described in Enable
+> Policy Enforcement and choose an earlier version to enforce."*
 
 ---
 
@@ -13,31 +19,41 @@ mechanism — distinct from emergency-disable (covered in
 
 | Scenario | Use |
 |---|---|
-| Recent change introduced an issue; want to go back to a known-good policy | **Revert** to the previous good p\* |
+| Recent change introduced an issue; want to go back to a known-good policy | **Revert** by re-enforcing an earlier published version |
 | Production is broken right now, no time to figure out which version is right | **Disable** enforcement — see [`10-pause-and-emergency-disable.md`](./10-pause-and-emergency-disable.md) |
-| A rule edit was wrong but only one rule needs reverting | **Edit** in workspace + new publish + Simulate-then-Enforce — see [`07-modify-enforced-policies.md`](./07-modify-enforced-policies.md) |
-| Need to entirely back out a planned change before its window closes | **Revert** if the change has been published and enforced |
+| A rule edit was wrong but only one rule needs reverting | **Edit** in workspace + new publish + analyze before re-enforce — see [`07-modify-enforced-policies.md`](./07-modify-enforced-policies.md) |
+| Need to entirely back out a change that's been published and enforced | **Revert** to the previous good version |
 
-Revert preserves enforcement (workspace stays in Enforce mode);
-the *content* of what's enforced rolls back. Disable removes
-enforcement entirely.
+Revert preserves enforcement (workspace stays in an enforcing
+state); the *content* of what's enforced rolls back. Disable
+removes enforcement entirely.
 
 ---
 
 ## How revert works
 
 ```
-   currently enforced: p_n  (the bad version)
+   currently enforced: v_n  (the bad version that you enforced)
             │
-            │ revert to p_n-1
+            │ re-run Enable Policy Enforcement,
+            │ select v_(n-1) instead
             ▼
-   enforced: p_n-1  (the previously known-good version)
+   enforced: v_(n-1)  (the previously known-good version)
 ```
 
-CSW records the revert as a new event in the workspace's
-Activity Log (it doesn't create a "p_n+1 = same as p_n-1"; the
-version stream still shows p_n existed and was rolled away from).
-Subsequent forward changes will produce p_n+1, p_n+2, etc.
+Per Cisco, the **enforced p\* version number is the v\* number
+you chose to enforce**. So if you're currently enforcing v17 and
+you re-enforce v15, the enforced version becomes 15. The
+workspace's Enforcement tab shows the current Enforced Policy
+Version at the top-left.
+
+> **Cisco source.** [About Policy Versions (v\* and p\*) — Policy version for enforcement](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#about-policy-versions-v-and-p):
+>
+> *"Each time you enable enforcement of the policies in a
+> workspace, or enable enforcement again after making changes,
+> the 'published' policy version (p\*) for enforcement becomes
+> the number of the analyzed version that you choose in the
+> enforcement wizard."*
 
 ---
 
@@ -45,14 +61,14 @@ Subsequent forward changes will produce p_n+1, p_n+2, etc.
 
 ### Step 1 — Pick the target version
 
-Open *Workspace → Policies → Versions*. Sort by p\*. Identify
-the most recent **good** p\*:
+Find the most recent **good** previously-enforced version.
+Useful evidence:
 
 | Indicator of "good" | Where to find it |
 |---|---|
-| Was enforced cleanly for a meaningful window | Activity Log |
-| Live Analysis was clean during its enforcement | Live Analysis history |
-| Doesn't include the rule(s) you suspect caused the issue | [Policy Diff](./08-policy-versions.md) vs. current p\* |
+| Was enforced cleanly for a meaningful window | [Enforcement History](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#enforcement-history) |
+| Live Policy Analysis was clean during its enforcement | Live Analysis history on the workspace |
+| Doesn't include the rule(s) you suspect caused the issue | [Policy Diff](./08-policy-versions.md) vs. current version |
 | Was associated with a known-good change ticket | Workspace description / activity log |
 
 If you can't pick a "known good" within ~5 minutes during an
@@ -62,14 +78,25 @@ time.
 
 ### Step 2 — Confirm the diff
 
-Open Policy Diff between current p_n and the chosen p_(n-k).
-Confirm the diff is what you'd expect — only the rules whose
-removal is the goal are leaving.
+Before pulling the trigger, open Policy Diff between the
+currently-enforced version and the target. Confirm the diff is
+what you'd expect — only the rules whose removal is the goal
+are leaving.
 
-### Step 3 — Revert
+### Step 3 — Re-run Enable Policy Enforcement with the older version
 
-In the workspace's Enforce / Policy Enforcement view:
-*Revert to Earlier Version → \[selected p\*\] → Confirm*.
+Per Cisco's documented procedure ([Enable Policy Enforcement](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#enable-policy-enforcement)),
+open the workspace's Enforcement tab and run the **Policy
+Enforcement Wizard** — but on the *Select Version* step, choose
+the older version instead of the latest.
+
+There are two variants of the wizard documented:
+
+- The **per-workspace** wizard (more detailed; supports the
+  full feature set described in
+  [Policy Enforcement Wizard](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#policy-enforcement-wizard)).
+- The **multi-scope** wizard (for enforcing multiple scopes
+  simultaneously; less detailed).
 
 The cluster pushes the older policy to all agents in scope.
 Push time is typically seconds–minutes depending on workspace
@@ -79,11 +106,15 @@ size.
 
 Same checks as [`06-verify-enforcement.md`](./06-verify-enforcement.md):
 
-- Workspace state still `Enforcing`.
-- Agent type still `Enforcement`.
-- Host firewall on a sample of agents now reflects the older p\*.
+- Workspace state still shows enforcement active.
+- Agents in scope still show `Agent Type = Enforcement`.
+- Host firewall on a sample of agents now reflects the older
+  version.
 - Active probes confirm the older policy's behaviour.
 - Application synthetic checks recover.
+
+The workspace's Enforced Policy Version (top-left of the
+Enforcement tab) should now show the version you chose.
 
 ### Step 5 — Record what happened
 
@@ -91,8 +122,12 @@ The change ticket / runbook gets updated with:
 
 - The version reverted *from* and *to*.
 - The reason (rule X caused issue Y; pinpoint via Policy Diff).
-- The next forward step (fix in a v_n+m, publish as p_n+1, go
-  through Simulate before Enforce again).
+- The next forward step (fix in a new authored version, analyze
+  before re-enforce).
+
+The revert appears in the workspace's
+[Enforcement History](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#enforcement-history)
+automatically.
 
 ---
 
@@ -102,15 +137,16 @@ A revert is "we went backward to a safe state." The natural
 next instinct is "let's fix the issue and re-publish forward."
 That's correct, but **not in a hurry**:
 
-- Re-run [Quick Analysis](../analysis/03-quick-analysis.md) on
-  the proposed forward fix.
-- Run [Live Analysis](../analysis/04-live-analysis.md) for at
-  least a few hours.
-- Use Simulate phase before Enforce, even if the change is small.
+- Re-run [Quick Analysis / Policy Experiments](../analysis/03-quick-analysis.md)
+  on the proposed forward fix.
+- Run [Live Policy Analysis](../analysis/04-live-analysis.md)
+  for at least a few hours.
+- Use the Enable Policy Enforcement wizard again (with the
+  newest analyzed version) only after analysis is clean.
 
 The same pre-flight discipline that should have caught the
-original issue is the one that prevents the next iteration from
-hitting it again.
+original issue is what prevents the next iteration from hitting
+it again.
 
 ---
 
@@ -118,8 +154,8 @@ hitting it again.
 
 | Symptom | Beyond-revert action |
 |---|---|
-| Reverting to the previous p\* doesn't restore application function | The issue isn't (only) policy — investigate the application or another infra layer; consider disable while you do |
-| The "previous good p\*" is also bad in light of new information | Walk back further; or disable enforcement and rebuild policy fresh |
+| Reverting to the previous version doesn't restore application function | The issue isn't (only) policy — investigate the application or another infra layer; consider disable while you do |
+| The "previous good version" is also bad in light of new information | Walk back further; or disable enforcement and rebuild policy fresh |
 | Revert succeeds but agents still report the old (bad) policy on the host | Agent push didn't propagate; verify agent connectivity, restart the agent if needed |
 | You can't find a good version to revert to | Disable enforcement; rebuild from a published-version export ([`08-policy-versions.md`](./08-policy-versions.md)) |
 
@@ -127,9 +163,11 @@ hitting it again.
 
 ## API alternative
 
-The same revert can be invoked via OpenAPI for scripted
-incident-response. See [`../api/03-enforcement-toggle-api.md`](../api/03-enforcement-toggle-api.md)
-for the relevant endpoints.
+The same revert can be invoked via the OpenAPI's enforcement
+endpoints by re-calling enforcement-enable with an older
+version. The exact path depends on your release — see
+[`../api/03-enforcement-toggle-api.md`](../api/03-enforcement-toggle-api.md)
+and the [Secure Workload OpenAPIs chapter](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/secure-workload-openapis.html).
 
 ---
 
@@ -140,3 +178,6 @@ for the relevant endpoints.
 - [`06-verify-enforcement.md`](./06-verify-enforcement.md)
 - [`../operations/02-version-history.md`](../operations/02-version-history.md)
 - Cisco: [Revert Enforced Policies to an Earlier Version](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#revert-enforced-policies-to-an-earlier-version)
+- Cisco: [Enable Policy Enforcement](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#enable-policy-enforcement)
+- Cisco: [Policy Enforcement Wizard](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#policy-enforcement-wizard)
+- Cisco: [Enforcement History](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#enforcement-history)

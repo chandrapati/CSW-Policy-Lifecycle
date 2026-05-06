@@ -1,10 +1,18 @@
 # Phase 1 — Policy Discovery
 
 Discovery is where policy is **born**. Given a scope, the inventory
-within it, and a meaningful window of flow data, *Application
-Dependency Mapping* (ADM) clusters workloads by behaviour and
-proposes a draft policy set that describes what they actually do.
+within it, and a meaningful window of flow data, **Automatic Policy
+Discovery** (ADM) clusters workloads by behaviour and proposes a
+draft policy set that describes what they actually do.
 
+> **Naming note from Cisco.** Per the User Guide:
+> *"Automatic policy discovery, sometimes referred to as policy
+> discovery, and formerly known as Application Dependency Mapping
+> (ADM), uses existing traffic flows and other data."*
+> Cisco's current primary term is **Automatic Policy Discovery**;
+> "ADM" is the legacy alias still widely used by practitioners.
+> This guide uses both interchangeably.
+>
 > **Cisco source.** [Manage Policy Lifecycle — Discover Policies Automatically](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#discover-policies-automatically).
 
 ---

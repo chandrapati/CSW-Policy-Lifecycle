@@ -133,17 +133,19 @@ Reference: [Controlling User Access to Workspaces](https://www.cisco.com/c/en/us
 
 ## Common workspace operations (quick reference)
 
-| Operation | Where in UI | Notes |
+| Operation | Where in UI (verify against your release) | Notes |
 |---|---|---|
 | Create | *Defend → Segmentation → Workspaces → Create* | Pick scope + primary/secondary |
 | Rename | Workspace settings | Cosmetic; doesn't affect policy |
 | Delete | Workspace settings | Only secondary; primary deletion requires demotion first |
-| Run ADM | Workspace → *Automatic Policy Discovery* | See [`discovery/03-run-adm.md`](../discovery/03-run-adm.md) |
-| Quick Analysis | Workspace → *Analysis* | Historical flow simulation |
-| Live Analysis | Workspace → *Analysis → Live Policy Analysis* | Current flow simulation |
-| Publish (v → p) | Workspace → *Policies → Publish* | Becomes the enforceable artefact |
-| Enable Enforcement | Workspace → *Enforce* | Monitor → Simulate → Enforce flow |
-| Pause updates | Enforcement settings | Freezes pushed policy without disabling enforcement |
+| Run Automatic Policy Discovery | Workspace → *Automatic Policy Discovery* | See [`../discovery/03-run-adm.md`](../discovery/03-run-adm.md) |
+| Quick Analysis | Workspace → *Run Quick Analysis* (right nav pane on the Policies page) | Tests a **single hypothetical flow** against current policy ([Cisco doc](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#quick-analysis)) |
+| Policy Experiments | Workspace → *Policy Analysis* | Replays past traffic against current policies ([Cisco doc](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#run-policy-experiments-to-test-current-policies-against-past-traffic)) |
+| Live Policy Analysis | Workspace → *Policy Analysis* | Continuous evaluation against arriving flows |
+| Analyze Latest Policies | Workspace → *Policy Analysis* | Increments the analysis-context p\* version |
+| Enable Policy Enforcement | Workspace → *Enforcement* (Policy Enforcement Wizard) | See [`../enforcement/03-enable-enforcement.md`](../enforcement/03-enable-enforcement.md) |
+| Stop Policy Enforcement (single scope) | Workspace's Policy Enforcement page → red **Stop Policy Enforcement** button | Reverts to ancestor-scope enforced policy; agents stop applying this workspace's enforcement |
+| Pause Policy Updates | *Defend → Enforcement* → status indicator beside Policy Updates | **Cluster-wide and site-admin only** — pauses rule updates for ALL scopes / workloads |
 
 ---
 

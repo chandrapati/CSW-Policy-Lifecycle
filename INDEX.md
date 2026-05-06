@@ -31,13 +31,13 @@
 | **ADM** — Application Dependency Mapping | [`discovery/03-run-adm.md`](./discovery/03-run-adm.md) |
 | **Clusters** vs **Inventory Filters** | [`discovery/04-clusters-and-inventory-filters.md`](./discovery/04-clusters-and-inventory-filters.md) |
 | **Conversations** | [`analysis/05-conversations.md`](./analysis/05-conversations.md) |
-| **Quick Analysis** vs **Live Analysis** | [`analysis/03-quick-analysis.md`](./analysis/03-quick-analysis.md) and [`analysis/04-live-analysis.md`](./analysis/04-live-analysis.md) |
+| **Quick Analysis** (single hypothetical flow) vs **Policy Experiments** (replay past traffic) vs **Live Analysis** (continuous) | [`analysis/03-quick-analysis.md`](./analysis/03-quick-analysis.md) and [`analysis/04-live-analysis.md`](./analysis/04-live-analysis.md) |
 | **Effective Consumer / Effective Provider** | [`analysis/06-policy-complexities.md`](./analysis/06-policy-complexities.md) |
 | **Cross-scope policy** options | [`analysis/06-policy-complexities.md`](./analysis/06-policy-complexities.md) |
 | **Policy versions** v\* and p\* | [`enforcement/08-policy-versions.md`](./enforcement/08-policy-versions.md) |
 | **Policy Diff** | [`enforcement/08-policy-versions.md`](./enforcement/08-policy-versions.md) |
 | **Enforcement Wizard** | [`enforcement/03-enable-enforcement.md`](./enforcement/03-enable-enforcement.md) |
-| **Pause Policy Updates** | [`enforcement/10-pause-and-emergency-disable.md`](./enforcement/10-pause-and-emergency-disable.md) |
+| **Pause Policy Updates** (cluster-wide, site-admin only) and **Stop Policy Enforcement** (per-workspace red button) | [`enforcement/10-pause-and-emergency-disable.md`](./enforcement/10-pause-and-emergency-disable.md) |
 | **Policies Publisher (Kafka)** | [`api/04-policies-publisher-kafka.md`](./api/04-policies-publisher-kafka.md) |
 | **F5 ADM** — load-balancer-aware policy discovery | [`discovery/07-f5-adm.md`](./discovery/07-f5-adm.md) |
 

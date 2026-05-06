@@ -11,17 +11,19 @@ the building block for everything in
 
 ## Endpoint families
 
-(Exact paths and parameters are release-specific; consult the
-OpenAPI chapter for your version. The shapes below are stable
-across recent 4.x.)
+> **Exact paths, parameters, body schemas, and field names are
+> release-specific. Treat the patterns below as a *map* of which
+> capabilities exist, not as a contract for paths.** Always
+> consult the [OpenAPIs chapter](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/secure-workload-openapis.html)
+> for your release before depending on a specific path.
 
-| Family | Path pattern (illustrative) | Use |
+| Family | Path pattern (illustrative — verify) | Use |
 |---|---|---|
 | Workspaces | `/openapi/v1/applications` (list, create, get, delete) | Manage workspaces themselves |
 | Policies on a workspace | `/openapi/v1/applications/{app_id}/policies` (list, create, update, delete) | Policy CRUD |
-| Versions | `/openapi/v1/applications/{app_id}/versions` | List discovered (v\*) and published (p\*) versions |
-| Publish | `/openapi/v1/applications/{app_id}/publish` | v\* → p\* |
-| Enforcement | `/openapi/v1/applications/{app_id}/enable_enforce` and `/disable_enforce` | See [`03-enforcement-toggle-api.md`](./03-enforcement-toggle-api.md) |
+| Versions | `/openapi/v1/applications/{app_id}/versions` | List discovered (v\*) and analyzed/enforced (p\*) versions |
+| Analyze | An operation that snapshots the current policy and increments p\* (analysis context) | UI equivalent: *Analyze Latest Policies* |
+| Enforcement | `/openapi/v1/applications/{app_id}/enable_enforce` and `/disable_enforce` (verify) | See [`03-enforcement-toggle-api.md`](./03-enforcement-toggle-api.md) |
 | Inventory filters | `/openapi/v1/filters/inventories` | Reusable label expressions |
 | Scopes | `/openapi/v1/app_scopes` | Inventory tree |
 | Import / Export | `/openapi/v1/policies/import` and `/export` | JSON / CSV round-trip |

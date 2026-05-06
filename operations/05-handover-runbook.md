@@ -18,8 +18,11 @@ A list of things the receiver should be able to point to:
       health.
 - [ ] **Scope tree** — top-level scopes, who owns each.
 - [ ] **Workspace inventory** — every primary workspace, the
-      app it covers, the owner, current state (Visibility /
-      Simulate / Enforce).
+      app it covers, the owner, and where it sits in the
+      Monitor → Simulate → Enforce rollout (see
+      [`../enforcement/04-rollout-pattern.md`](../enforcement/04-rollout-pattern.md)
+      for the methodology and how it maps to Cisco's
+      named features).
 - [ ] **Inventory filter inventory** — the reusable filters,
       what they mean.
 - [ ] **GitOps repo location** (if applicable), branch protection

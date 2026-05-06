@@ -16,11 +16,16 @@ When this phase is complete:
 
 - Every discovered rule has been reviewed and either kept,
   refined, or removed by a human.
-- **Quick Analysis** against historical flows shows zero (or
-  fully-explained) would-be-blocked legitimate flows.
+- **Quick Analysis** has been used to check key hypothetical
+  flows against the proposed policy and the matching rule is
+  what you intended.
+- **Policy Experiments** replayed past traffic against the
+  proposed policy with zero (or fully-explained) Escaped flows.
 - **Live Policy Analysis** against current flows shows zero
-  (or fully-explained) would-be-blocked legitimate flows for
-  ≥ 5 business days, including any periodic batch.
+  (or fully-explained) Escaped flows for a window that includes
+  a complete business cycle (a recommended baseline is ≥ 5
+  business days, including any periodic batch — your team's
+  threshold may differ).
 - All cross-scope rules are reflected on **both sides** (this
   workspace and the counterpart).
 - Catch-All semantics have been **explicitly authored** (you
@@ -37,7 +42,7 @@ When this phase is complete:
 |---|---|
 | [`01-review-discovered-policies.md`](./01-review-discovered-policies.md) | How to read what ADM produced, line by line |
 | [`02-policy-visual.md`](./02-policy-visual.md) | The Policy Visual Representation: when to use it, what to look for |
-| [`03-quick-analysis.md`](./03-quick-analysis.md) | Quick Analysis (historical flow simulation) |
+| [`03-quick-analysis.md`](./03-quick-analysis.md) | Quick Analysis (single hypothetical flow) and Policy Experiments (replay past traffic) — two distinct Cisco features |
 | [`04-live-analysis.md`](./04-live-analysis.md) | Live Policy Analysis (current flow simulation, the gold standard) |
 | [`05-conversations.md`](./05-conversations.md) | Conversations table — the raw flow evidence behind every rule |
 | [`06-policy-complexities.md`](./06-policy-complexities.md) | Priorities, cross-scope, effective consumer / provider |
@@ -65,15 +70,19 @@ When this phase is complete:
       - priorities — Absolute / Default / Catch-All correctness
             │
             ▼
-   4. Quick Analysis (file 03) — replay historical flows
-      against the proposed policy
+   4. Quick Analysis + Policy Experiments (file 03) —
+      hypothetical flow checks and historical replay against
+      the proposed policy
             │
             ▼
    5. Live Policy Analysis (file 04) — keep doing it as
-      current flows arrive; resolve every would-be-blocked flow
+      current flows arrive; resolve every Escaped flow
             │
             ▼
-   6. Publish (v* → p*) when Live Analysis is clean for ≥ 5 days
+   6. Analyze Latest Policies, then enforce via the Policy
+      Enforcement Wizard when Live Analysis is clean for the
+      window your team has agreed on (e.g. ≥ 5 business days
+      including any periodic batch)
             │
             ▼
    On to enforcement/
@@ -81,24 +90,24 @@ When this phase is complete:
 
 ---
 
-## Quick Analysis vs. Live Analysis
+## Quick Analysis vs. Policy Experiments vs. Live Analysis
 
-These are easy to confuse, so up front:
+Three distinct Cisco-named tools at this stage. They're easy to
+confuse:
 
-| | Quick Analysis | Live Policy Analysis |
-|---|---|---|
-| Input | Historical flows from a chosen window | Currently arriving flows |
-| When you'd use it | First check after ADM, after every refinement | After Quick Analysis is clean — ongoing soak test |
-| Reproducible | Yes — same window → same result | No — new flows constantly |
-| Does it block traffic? | No, simulation only | No, simulation only |
-| Time to value | Seconds–minutes | Continuous; you watch it for days |
-| Confidence level | Catches the bulk of issues | Catches the long tail (rare flows, periodic events) |
+| | Quick Analysis | Policy Experiments | Live Policy Analysis |
+|---|---|---|---|
+| Input | A single **hypothetical flow** you specify | A window of past traffic | Currently arriving flows |
+| Cisco source | [Quick Analysis](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#quick-analysis) | [Policy Experiments](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#run-policy-experiments-to-test-current-policies-against-past-traffic) | [Live Policy Analysis](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#live-policy-analysis) |
+| Scope | Primary workspace only; not on Kubernetes service flows | Per workspace; bounded by selected duration | Per workspace; continuous |
+| Time to value | Sub-second per query | Minutes (depending on duration) | Continuous; days of observation |
+| Reproducible | Yes — same query → same answer | Yes — same window → same result | No — new flows constantly |
+| Does it block traffic? | No (simulation only) | No (simulation only) | No (simulation only) |
+| What it tells you | "Which rule decides flow X?" | "What would my policy do across the past N hours?" | "What is my policy doing right now, continuously?" |
 
-**Both** are needed before publishing. Quick Analysis is *fast
-proof* the policy isn't broken. Live Analysis is *evidence over
-time* that it's actually safe. Skipping Live Analysis is the
-single most common cause of *"the policy passed Quick Analysis
-in test, blocked something in production."*
+All three sit *before* enforcement. Use them in combination:
+Quick Analysis for point-debugging, Policy Experiments for
+batch evaluation, Live Analysis for the soak test.
 
 Detail in [`03-quick-analysis.md`](./03-quick-analysis.md) and
 [`04-live-analysis.md`](./04-live-analysis.md).

@@ -12,73 +12,112 @@ and [agent readiness](./02-agent-readiness.md) are green.
 
 ## Where in the UI
 
-*Defend → Segmentation → Workspaces → \[your primary workspace\]
-→ Enforce* (or *Policy Enforcement* depending on release) →
-*Enable Enforcement*.
+Open the workspace's **Enforcement** page. Per Cisco's
+[Enable Policy Enforcement](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#enable-policy-enforcement),
+two flows exist:
 
-This launches the **Enforcement Wizard**, which walks the
-specific settings for this enforcement event.
+- The **per-workspace** wizard (more detailed; what's described
+  below).
+- A **multi-scope** wizard (less detailed; for enforcing
+  multiple scopes simultaneously).
+
+Click *Enable Enforcement* (label may vary by release) to
+launch the per-workspace wizard.
 
 ---
 
-## The Enforcement Wizard step by step
+## The Policy Enforcement Wizard — Cisco's documented steps
 
-### Step 1 — Choose the published version (p\*)
+Per Cisco's [Policy Enforcement Wizard](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#policy-enforcement-wizard),
+the wizard's purpose is to:
 
-Confirm which p\* will be enforced. This is normally the
-latest published version, but for rollback or controlled
-experiments you may want an earlier version. The wizard shows
-the [Policy Diff](./08-policy-versions.md) between the current
-state and the chosen p\*.
+> *"Review policies before they are implemented on the
+> workloads … Download policy changes for review … Compare
+> policy versions … Choose which analyzed version of the
+> workspace to enforce … Roll back policies to a previous
+> version."*
 
-Verify:
+The documented steps are:
 
-- The shown p\* is the one your team reviewed.
-- The diff vs. the previous enforced p\* (if any) is what you
+### Step 1 — Select Policy Updates
+
+> *"You can select which version of policies to be enforced on
+> the workloads. The difference between the currently enforced
+> policies and policies in the selected version is displayed."*
+
+This is where rollback happens too: pick an earlier analyzed
+version on this step instead of the latest. Per Cisco, the
+diff is filterable and downloadable (CSV) much like the
+standalone [Policy Diff](./08-policy-versions.md).
+
+What to check:
+
+- The shown analyzed version is the one your team reviewed.
+- The diff vs. the currently-enforced version is what you
   expect — no surprise rules.
 
-### Step 2 — Choose enforcement mode
+### Step 2 — Impacted Workloads
 
-The mode applied to the agents in scope:
+> *"This step shows the workloads that will be affected by the
+> new firewall rules generated from the selected policy
+> changes."*
 
-| Mode | What the agent does | When |
-|---|---|---|
-| **Enforced** | Applies the host firewall rules; drops non-matching flows | Final state |
-| **Simulate** *(some releases call this "Preview" or related)* | Updates the host firewall rules but takes no enforcement action; reports would-be-rejected flows from the agent's perspective | Bridge between published policy and full enforcement; complements [Live Analysis](../analysis/04-live-analysis.md) |
-| **Visibility** | No enforcement; flow telemetry only | Pre-enforcement state |
+Cisco notes:
 
-For a first-time enable, **start in Simulate (or
-Monitor-equivalent)** for at least 48–72 h before moving to
-Enforced. See [`04-rollout-pattern.md`](./04-rollout-pattern.md)
-for the full Monitor → Simulate → Enforce sequence.
+> *"The actual impacted workloads might be smaller due to other
+> factors such as agent config intents."*
 
-### Step 3 — Choose the population
+This is the wizard *displaying* the impacted set; it is not a
+selector. Sub-population selection (e.g. "enforce only on web
+tier first") is configured separately via **Agent Config
+Profiles / Agent Config Intents**, *not* in this wizard. See
+[`02-agent-readiness.md`](./02-agent-readiness.md).
 
-The wizard offers granular control of which workloads in the
-scope will be enforced:
+### Step 3 — Impacting Policies
 
-| Selector | Use when |
-|---|---|
-| **Entire scope** | Standard enforcement on a small / coherent app |
-| **Inventory filter subset** | Phased rollout — e.g. enforce on `tier=web` first, then `tier=app`, then `tier=db` |
-| **Specific workloads** | Canary on 1–2 hosts before broadening |
+> *"Policies from the ancestor workspaces may impact workloads
+> in the current workspace. Therefore, you should make sure the
+> desired allow policies from ancestor workspaces are
+> enforced."*
 
-For a first-time production enforcement on a non-trivial app,
-prefer a **subset selector** — start with the lowest-risk tier
-(typically web), confirm clean for 24 h, then broaden.
+Read the ancestor list carefully. A common gotcha: an ancestor
+scope's Catch-All Deny that the workspace owner had assumed
+*didn't* apply.
 
-### Step 4 — Confirm and apply
+### Step 4 — Review & Accept
 
-The wizard summarises:
+> *"This final step summarizes the policy changes to be
+> enforced, the number of potentially impacted workloads, and
+> the catch-all action that will be enforced. When you click
+> **Accept and Enforce**, the policies in the workspace will
+> be used to calculate the new firewall rules that will be
+> configured on the relevant workloads."*
 
-- Workspace + scope
-- p\* version being enforced
-- Mode (Enforced / Simulate / Visibility)
-- Population (all / subset / specific)
-- Estimated workload count
+You can supply a name, description, and reason for action — do
+this for every enforcement event, including rollback (where
+you supply only the reason; name and description for a past
+version cannot be changed).
 
-Click *Apply*. The cluster pushes configuration to the agents
-in the population.
+---
+
+## What "enforcement mode" actually means in CSW — and where it's set
+
+There is **no Visibility / Simulate / Enforce selector inside
+the Policy Enforcement Wizard.** Agent behaviour (whether the
+agent is reporting flows only, applying the host firewall, or
+both) is configured separately via the **Agent Config
+Profile** that the agent participates in.
+
+The Enforcement Wizard's job is "which version of policy
+should be enforced for this workspace." The agent's role —
+deep visibility, enforcement, etc. — comes from agent config.
+See [`02-agent-readiness.md`](./02-agent-readiness.md) and the
+[Software Agents](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/deploy-software-agents.html)
+chapter for agent configuration details.
+
+The phased rollout described in [`04-rollout-pattern.md`](./04-rollout-pattern.md)
+composes both: agent config (for what the agent does) and
+workspace-level enforcement (for which version is canonical).
 
 ---
 
@@ -88,12 +127,12 @@ Within seconds–minutes:
 
 | Indicator | Healthy |
 |---|---|
-| Workspace's *Enforce* page state | `Enforcing` (or `Simulating`, etc., as set) |
+| Workspace's *Enforcement* page | Shows the new Enforced Policy Version (top-left) |
 | Agent → cluster status | Still `OK` for every in-scope agent |
-| Agent type | Now reads `Enforcement` (was `Deep Visibility`) |
-| Host-side firewall | Contains CSW-managed chains / WFP filters with rules from p\* |
+| Agent type | `Enforcement` for agents whose Agent Config makes them enforcing |
+| Host-side firewall | Contains CSW-managed chains / WFP filters with rules from the enforced version |
 | Flow telemetry | Continues uninterrupted |
-| **Rejected flow count** *(if Enforced mode)* | At-or-near zero, matching what Live Analysis predicted |
+| **Rejected flow count** | At-or-near zero, matching what Live Policy Analysis predicted before enforcement |
 
 If any of those are wrong — agents going unhealthy en masse,
 flow telemetry stopping, rejected-flow count exploding — go

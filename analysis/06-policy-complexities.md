@@ -123,42 +123,111 @@ Reference: [When Consumer and Provider Are in Different Scopes — Policy Option
 
 ## 3. Effective Consumer / Effective Provider
 
-When a rule references inventory filters, the **effective**
-consumer / provider is the actual set of workloads the filter
-resolves to *at evaluation time*.
+**Effective Consumer / Effective Provider** is a CSW-specific
+feature for configuring policies whose **firewall rules need to
+be programmed on workloads that don't own the IP address the
+rule references** — most commonly workloads behind a virtual
+IP (VIP) in a keepalive or failover-clustering deployment.
 
-This matters because:
+> **Cisco source.** Direct from
+> [Effective Consumer or Effective Provider](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#effective-consumer-or-effective-provider):
+>
+> *"Suppose you are configuring policies for a fleet of
+> workloads behind a virtual IP (VIP), similar to keepalive or
+> windows failover clustering solutions. You will use effective
+> consumer and/or effective provider to ensure that traffic is
+> not disrupted during a failover event."*
 
-| Scenario | Surprise |
+### Why it's needed — the VIP problem
+
+Default behaviour: CSW programs firewall rules on the workloads
+whose **own IP address** matches the rule's consumer or provider
+expression. For a service fronted by a VIP (say `6.6.6.6`),
+that's a problem:
+
+- Only the workload **currently** holding the VIP has IP
+  `6.6.6.6` on an interface.
+- During a failover, the **new** primary takes over `6.6.6.6` —
+  but if it never had the matching firewall rules, the flow
+  breaks.
+
+### What Effective Provider does
+
+Per Cisco's worked example: you set the **Effective Provider**
+to include the *group of workloads where firewall rules
+allowing traffic to the service VIP need to be programmed* —
+regardless of which one currently owns the VIP. CSW programs the
+allow-rule for `6.6.6.6` on all of them.
+
+> *"When Effective Provider is set, we can see on the workloads
+> that firewall rules allowing traffic to 6.6.6.6 are programmed
+> even when a workload does not own the VIP. When all workloads
+> backing the service are programmed with these rules, traffic
+> will not be disrupted during a failover event because the new
+> primary workload (that owns the VIP) will have the necessary
+> firewall rules programmed."*
+
+The same reasoning applies to **Effective Consumer** for
+fleets that initiate connections from a VIP.
+
+### When to use it
+
+| Scenario | Use Effective Provider / Consumer? |
 |---|---|
-| Filter `tier=app` resolves to 12 workloads at policy authoring; later 18 at evaluation (autoscale) | Effective consumer / provider just changed — usually transparent, occasionally surprising |
-| Filter intersects with an unrelated label that drifted | Membership can broaden silently |
-| Filter referenced by multiple workspaces | Changing the filter affects every consuming workspace |
+| Service fronted by a VIP / keepalive cluster / windows failover cluster | **Yes** — without it, failover traffic disrupts |
+| Active-passive HA pair where the IP floats | **Yes** |
+| Standalone workload with a fixed IP | No — default behaviour is correct |
+| Load balancer with NAT (LB has its own IP and rewrites) | Depends — usually the LB itself is the consumer/provider, no Effective override needed |
+| Just wanting to verify which workloads a filter resolves to | **No — that's a different concern** (see the next subsection) |
 
-CSW's UI exposes the effective resolution at any time — open
-the rule, click *"View effective consumer / provider"* (or the
-equivalent in your release).
+### How to configure
 
-### Effective vs. authored — examples
+Per Cisco's [How to Configure Effective Consumer or Effective
+Provider](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#how-to-configure-effective-consumer-or-effective-provider):
 
-| Authored | Effective at evaluation | Comment |
-|---|---|---|
-| Consumer = `application=payments-api AND tier=web AND environment=prod` | `web-01..web-12` | Ordinary; filter is doing what it should |
-| Consumer = `tier=web` (no `application`) | All web workloads in scope across many apps | Probably too broad — narrow the filter |
-| Provider = `prod-shared-dns` | `dns-01..dns-04` | Fine, as long as `prod-shared-dns` filter is correctly defined |
+1. Open the rule.
+2. Click **Effective Consumer** or **Effective Provider** (you
+   may need to set both for symmetric flows).
+3. Specify the set of workloads where the firewall rules should
+   be programmed (typically a filter that includes all members
+   of the failover cluster).
 
-### When to inspect effective resolution
+---
+
+## 4. Inspecting how filters resolve at evaluation time
+
+This is a **different** concern from Effective Consumer /
+Provider, although both involve the question *"which workloads
+does this rule actually program?"*. Use this when you want to
+sanity-check filter membership.
+
+When a rule references inventory filters, the resolved set of
+workloads can shift over time as labels change, scope membership
+shifts, or autoscale adds / removes workloads.
+
+### When to inspect filter resolution
 
 - After any inventory label change touching the filter's
   expression.
 - After any scope membership change.
 - During incident response — *"this rule should be allowing the
-  flow but isn't"* — confirm the effective set actually contains
+  flow but isn't"* — confirm the resolved set actually contains
   the workload you think it does.
 - Before publishing — sample a few rules and confirm the
-  effective sets look correct.
+  resolved sets look correct.
 
-Reference: [Effective Consumer or Effective Provider](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#effective-consumer-or-effective-provider).
+### What can go wrong
+
+| Authored | Resolves to | Comment |
+|---|---|---|
+| Consumer = `application=payments-api AND tier=web AND environment=prod` | `web-01..web-12` | Ordinary; filter is doing what it should |
+| Consumer = `tier=web` (no `application`) | All web workloads in scope across many apps | Probably too broad — narrow the filter |
+| Provider = `prod-shared-dns` | `dns-01..dns-04` | Fine, as long as `prod-shared-dns` filter is correctly defined |
+| Consumer = `app=payments-api` after `app` was renamed to `application` | Empty set | Label rename silently broke the filter |
+
+CSW's UI exposes the resolution of a filter — the exact path
+depends on the release. The inventory search / inventory filter
+membership view is the typical entry point.
 
 ---
 
