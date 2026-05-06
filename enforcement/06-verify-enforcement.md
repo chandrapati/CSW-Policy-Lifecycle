@@ -43,7 +43,7 @@ In the workspace's *Enforce* / *Policy Enforcement* view, confirm:
 | Agent type for each workload | `Enforcement` (was `Deep Visibility`) |
 | Last policy push time | Recent — within the last few minutes |
 | Rejected flows trend | At-or-near zero, matching what Live Analysis predicted |
-| Misdrop count | Stable; not climbing |
+| Allowed-but-dropped count (policy permits, network drops) | Stable; not climbing — a rise after go-live can indicate non-policy issues (host firewall, NAT, app crash) |
 | Health alerts | None active for this scope |
 
 In *Investigate → Flows*, sample a window from the last hour

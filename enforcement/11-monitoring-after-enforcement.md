@@ -10,7 +10,7 @@ This page is the watch list.
 
 ```
    1. Rejected-flow rate              ── catches policy gaps
-   2. Misdrop rate                    ── catches app / infra issues
+   2. Allowed-but-dropped rate        ── catches app / infra issues
    3. Agent health across population  ── catches agent-layer regression
    4. App-side SLI / synthetic checks ── catches end-user impact
 ```
@@ -41,10 +41,15 @@ the pre-flight window.
 
 ---
 
-## Signal 2 — Misdrop rate
+## Signal 2 — Allowed-but-dropped rate
 
-**What it is.** Flows the policy *permitted* but the agent
-observed a connection failure on (RST, no listener, etc.).
+**What it is.** Flows the policy *permitted* but where the agent
+observed a connection failure (RST, no listener, etc.) — i.e.
+`disposition=DROPPED + policy=ALLOW`. This isn't one of Cisco's
+named [Flow Disposition](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#flow-disposition)
+categories (it's the corner that's neither Permitted, Escaped,
+nor Rejected) — but CSW surfaces it via the Flows / Conversations
+views and it's a useful diagnostic signal.
 
 **Healthy.** Stable; should not change as a function of the CSW
 rollout.
@@ -53,8 +58,8 @@ rollout.
 
 | Pattern | Likely cause | Action |
 |---|---|---|
-| Misdrop count climbed after enforcement | Almost always *not* CSW — but worth confirming. The host firewall's enforcement might be slightly less permissive than expected for some edge cases. | Spot-check on affected hosts; verify no host-level conflict per [`05-platform-specific.md`](./05-platform-specific.md) |
-| New misdrop pattern from a specific consumer | App / infra issue at the consumer or provider | Surface to the app team; CSW telemetry is helpful but not the cause |
+| Count climbed after enforcement | Almost always *not* CSW — but worth confirming. The host firewall's enforcement might be slightly less permissive than expected for some edge cases. | Spot-check on affected hosts; verify no host-level conflict per [`05-platform-specific.md`](./05-platform-specific.md) |
+| New pattern from a specific consumer | App / infra issue at the consumer or provider | Surface to the app team; CSW telemetry is helpful but not the cause |
 
 ---
 

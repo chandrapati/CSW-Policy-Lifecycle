@@ -87,9 +87,15 @@ patterns:
 
 1. **Single writer per workspace.** If GitOps is the canonical
    author, lock out the UI for that workspace via RBAC.
-2. **Use ETags / version numbers** where the API exposes them.
-   Read before write; pass the expected version; reject and
-   retry on conflict.
+2. **Use any version / revision field the API exposes for the
+   resource you're editing.** The principle is read-modify-write
+   with a version check: read the current version; pass it back
+   on write; the server rejects mismatches. *However*, CSW's
+   OpenAPI doesn't broadly advertise per-policy ETag-style
+   optimistic concurrency for individual rule edits in the
+   [OpenAPIs chapter](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/secure-workload-openapis.html)
+   — confirm what your release exposes and lean harder on
+   patterns 1, 3, and 4 where it doesn't.
 3. **Always read back** after a write to confirm the resulting
    state.
 4. **Wrap writes in idempotency keys** at the script level —

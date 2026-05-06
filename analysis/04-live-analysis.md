@@ -20,18 +20,28 @@ Inputs:
 - The **live** stream of flow data from agents in the workspace's
   scope.
 
-Output: for every flow as it arrives, one of:
+For every flow that arrives, the cluster computes a **disposition**
+(what the network actually did to the flow — `ALLOWED` or
+`DROPPED`) and applies the analyzed policy. The combination
+yields one of three result categories:
 
-| Result | Meaning |
-|---|---|
-| **Permitted** | Would be allowed by current policy |
-| **Rejected (would be)** | Would be denied if policy were enforced |
-| **Misdropped (would be)** | A flow that *was* permitted but for which the agent later observed a connection failure (helps spot near-misses) |
+| Result | Cisco definition | What it tells you |
+|---|---|---|
+| **Permitted** | Allowed by the network *and* by the analyzed policies | Intended state — no action |
+| **Escaped** | Allowed by the network, but *would have been dropped* by the analyzed policies | **The actionable signal** — flow that would be rejected if you enabled enforcement now |
+| **Rejected** | Dropped by the network *and* would also have been denied by the analyzed policies | Network or another layer is already blocking it; policy agrees |
+
+> **Cisco source.** [Flow Disposition](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#flow-disposition).
 
 Crucially: **the agent does *not* block the flow.** Live Analysis
 sits alongside Visibility (or Simulate, which is the same thing
 expressed in enforcement terms — see
 [`../enforcement/04-rollout-pattern.md`](../enforcement/04-rollout-pattern.md)).
+
+**Escaped is the category that matters most pre-enforcement.**
+Every Escaped flow is something the workspace would block when
+enforcement turns on — so it's either a policy gap to fix or
+an unwanted flow you'll let enforcement reject.
 
 ---
 
@@ -46,8 +56,8 @@ Recommended timeline:
 | Day | Action |
 |---|---|
 | Day 0 | Quick Analysis is clean. Start Live Policy Analysis. |
-| Days 1–3 | Triage every "would-be-rejected" flow. Refine policy or accept the denial. |
-| Days 4–5 | Verify trend: zero unexpected rejections for 48 h, including overnight. |
+| Days 1–3 | Triage every **Escaped** flow. Refine policy or accept the would-be denial. |
+| Days 4–5 | Verify trend: zero unexpected Escaped flows for 48 h, including overnight. |
 | Day 5+ (if app has a weekly batch) | Continue until the batch has run cleanly under simulation. |
 | Day 30 (if app has a monthly batch) | Continue until the monthly batch has run cleanly under simulation. |
 
@@ -56,9 +66,10 @@ production.
 
 ---
 
-## What to do with would-be-rejected flows
+## What to do with Escaped flows
 
-Each would-be-rejected flow is one of:
+Each Escaped flow (allowed by the network, would-be-denied by
+your policy) is one of:
 
 | Category | Action |
 |---|---|
@@ -67,25 +78,33 @@ Each would-be-rejected flow is one of:
 | Periodic / rare legitimate flow we want to allow | Add an Allow rule with a description that explains the periodicity. |
 | Truly malicious / unauthorised | The policy was right to deny. Document; alert if appropriate. |
 
-Repeat until "would-be-rejected count = 0 (or fully explained)"
-holds across a full business cycle.
+Repeat until **Escaped count = 0** (or every non-zero is fully
+explained) holds across a full business cycle.
 
 ---
 
-## What about the *misdropped* category?
+## What about flows that policy permits but the network drops?
 
-Misdropped is the more subtle case: the **policy permits the
-flow, but the connection failed anyway.** That tells you:
+Cisco's three-category model (Permitted / Escaped / Rejected)
+doesn't have an explicit name for the **disposition=DROPPED +
+policy=ALLOW** corner — flows the policy *would* allow but
+that the network is dropping anyway. These typically show up
+in the Conversations or Flows views with a `DROPPED` disposition
+and don't appear in the Escaped count of Live Analysis.
 
-- The agent saw a flow it would allow, but the receiving side
-  reset / refused / had no listener.
-- This is *not* a CSW policy issue — it's an application or
-  infra issue.
-- But it's *visible* through CSW's flow telemetry, which is
-  unusually useful for debugging during a rollout.
+Common causes (none of which Live Analysis can fix on its own):
+
+- The receiving side reset / refused / had no listener.
+- A host firewall outside CSW's control (GPO, hand-edited
+  iptables) is blocking it.
+- A network ACL or security group upstream is blocking it.
+- A stateful network device in the path is unhealthy.
 
 When troubleshooting *"the policy is right but something is
-broken,"* check misdropped before assuming policy.
+still broken,"* this is the corner to investigate — but the
+diagnostic flow lives in [`05-conversations.md`](./05-conversations.md)
+and [`../operations/03-troubleshooting-blocked-flows.md`](../operations/03-troubleshooting-blocked-flows.md),
+not in the Live Analysis Permitted/Escaped/Rejected output itself.
 
 ---
 
@@ -96,11 +115,9 @@ The team should be able to assert all of:
 - ✅ Live Policy Analysis has been running for **at least 5
   business days** on this workspace's scope.
 - ✅ The window includes any weekly batch / scheduled jobs.
-- ✅ Would-be-rejected count is at zero (or every non-zero is
-  explicitly accepted).
-- ✅ Misdropped count is steady — i.e., no new misdrops
-  introduced by recent policy changes (or the changes have been
-  accounted for).
+- ✅ **Escaped** count is at zero (or every non-zero Escaped
+  flow is explicitly accepted as "we'll let enforcement reject
+  this").
 - ✅ Workspace is **published** (p\*) and the published version
   matches what Live Analysis is evaluating.
 - ✅ Rollback path is documented (per
@@ -128,7 +145,7 @@ new application behaviour that needs a policy update. See
 | Pitfall | Symptom | Fix |
 |---|---|---|
 | Started Live Analysis before publishing | Result reflects the discovered (v\*) version, which isn't what enforcement will use | Publish first, then start |
-| Dismissed weekly batch as noise | Day 7 surprise: massive batch flow is would-be-rejected | Wait at least one weekly cycle before declaring clean |
+| Dismissed weekly batch as noise | Day 7 surprise: massive batch flow shows up as Escaped | Wait at least one weekly cycle before declaring clean |
 | Confused Live Analysis (simulation) with Simulate enforcement | Different things; both don't block traffic, but they're different stages | Use Live Analysis pre-publish; Simulate enforcement post-publish, pre-Enforce — see [`../enforcement/04-rollout-pattern.md`](../enforcement/04-rollout-pattern.md) |
 | Stopped Live Analysis after enforcement | Lost ongoing drift signal | Leave it running; or rely on Enforcement Reporting in [`../operations/01-policy-drift.md`](../operations/01-policy-drift.md) |
 

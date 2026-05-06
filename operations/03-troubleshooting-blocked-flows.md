@@ -43,7 +43,7 @@ consumer / provider / port. Each flow record has a status:
 | **Permitted** | Policy allowed; flow should be reaching the provider |
 | **Rejected (consumer side)** | Consumer's host firewall blocked outbound |
 | **Rejected (provider side)** | Provider's host firewall blocked inbound |
-| **Misdrop** | Allowed by policy but failed at TCP / app layer |
+| **Allowed-but-dropped** | Allowed by policy but failed at TCP / app layer (see [Flow Disposition](https://www.cisco.com/c/en/us/td/docs/security/workload_security/secure_workload/user-guide/4_0/cisco-secure-workload-user-guide-on-prem-v40/manage-policy-lifecycle-in-secure-workload.html#flow-disposition); not a Cisco-named category but visible in the Flows / Conversations views) |
 | **No record** | Flow not observed; either not attempted, or sampling gap |
 
 Branch from here:
@@ -61,7 +61,7 @@ side). Branch by which rule:
 | Inherited Default Deny | Parent-scope rule too broad — investigate which scope owns it |
 | Specific Default Deny | Authored rule that thinks this flow is bad — confirm intent |
 
-### "Permitted but app reports failure" — Misdrop
+### "Permitted by policy but app reports failure" — allowed-but-dropped
 
 Not a CSW policy issue. Could be:
 
