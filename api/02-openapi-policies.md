@@ -24,7 +24,7 @@ the building block for everything in
 | Versions | `/openapi/v1/applications/{app_id}/versions` | List discovered (v\*) and analyzed/enforced (p\*) versions |
 | Analyze | An operation that snapshots the current policy and increments p\* (analysis context) | UI equivalent: *Analyze Latest Policies* |
 | Enforcement | `/openapi/v1/applications/{app_id}/enable_enforce` and `/disable_enforce` (verify) | See [`03-enforcement-toggle-api.md`](./03-enforcement-toggle-api.md) |
-| Inventory filters | `/openapi/v1/filters/inventories` | Reusable label expressions |
+| Inventory filters | `/openapi/v1/inventory_filters` | Reusable label expressions |
 | Scopes | `/openapi/v1/app_scopes` | Inventory tree |
 | Import / Export | `/openapi/v1/policies/import` and `/export` | JSON / CSV round-trip |
 

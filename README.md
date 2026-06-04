@@ -36,6 +36,36 @@ breaking production.
 
 ---
 
+## For executives — at a glance
+
+> **CISO / CIO read.** This repo is the *operational* half of a CSW
+> segmentation program; the business case and audit evidence live in
+> the companion [CSW-Compliance-Mapping](https://github.com/chandrapati/CSW-Compliance-Mapping)
+> and [CSW-Tenant-Insights](https://github.com/chandrapati/CSW-Tenant-Insights) repos.
+
+- **Problem it solves.** Flat internal networks let one compromised
+  workload reach hundreds more. This guide is the disciplined path to
+  **least-privilege, east-west micro-segmentation** — limiting each
+  workload to only the traffic it actually needs.
+- **How risk is controlled.** Policy is never flipped straight to
+  "block." The method is **Monitor → Simulate → Enforce**: observe real
+  traffic, dry-run the rules against live flows to catch breakage *before*
+  it happens, then enforce — with a one-click rollback path the whole way.
+- **Time-to-value.** A typical scope moves from agents-reporting to
+  enforced policy in roughly **30 days** (≈2 weeks flow baselining, then
+  staged simulate/enforce). See [`enforcement/04-rollout-pattern.md`](./enforcement/04-rollout-pattern.md).
+- **Who owns what.** Security defines intent; platform/app owners
+  validate flows; change control gates each enforce step. Emergency
+  disable is a documented, per-workspace action — see
+  [`enforcement/10-pause-and-emergency-disable.md`](./enforcement/10-pause-and-emergency-disable.md).
+- **What good looks like.** % of in-scope apps in Enforce, a falling
+  trend of unexpected ("escaped") flows, low policy drift, and
+  audit-ready evidence exports between assessments.
+- **Status / trust.** Draft v1, CSW 4.0-oriented; the *Cisco Secure
+  Workload User Guide* is authoritative for any specific release.
+
+---
+
 ## The CSW policy lifecycle in one diagram
 
 ```
