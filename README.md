@@ -114,66 +114,63 @@ unfamiliar.
 
 ## What's in this repo
 
-```
-CSW-Policy-Lifecycle/
-├── README.md                  ← you are here (overview + lifecycle map)
-├── INDEX.md                   ← jump table by phase / by question
-├── docs/                      ← Background concepts (read first)
-│   ├── 00-official-references.md      ← Cisco doc cross-reference (read this first)
-│   ├── 01-prerequisites.md            ← scopes, labelling, agents in Visibility, flow-data window
-│   ├── 02-segmentation-basics.md      ← what a segmentation policy actually is in CSW
-│   ├── 03-workspaces.md               ← workspaces are the unit of policy management
-│   ├── 04-policy-attributes.md        ← attributes, rank, inheritance, consumer / provider
-│   └── 05-decision-matrix.md          ← discover automatically vs. author manually
-├── discovery/                 ← Phase 1: Application Dependency Mapping (ADM)
-│   ├── README.md
-│   ├── 01-prepare-scope.md            ← scope tree shape, labelling, inventory filters
-│   ├── 02-flow-collection-window.md   ← how long to collect, what to look for
-│   ├── 03-run-adm.md                  ← run ADM, refine, iterate
-│   ├── 04-clusters-and-inventory-filters.md ← grouping workloads
-│   ├── 05-flow-filters.md             ← include / exclude filters
-│   ├── 06-external-dependencies.md    ← handle external dependencies
-│   ├── 07-f5-adm.md                   ← F5 load-balancer-aware ADM
-│   └── 08-discovery-anti-patterns.md  ← common mistakes to avoid
-├── analysis/                  ← Phase 2: Review and Analyze Policies
-│   ├── README.md
-│   ├── 01-review-discovered-policies.md ← interpret what ADM produced
-│   ├── 02-policy-visual.md            ← Policy Visual Representation
-│   ├── 03-quick-analysis.md           ← Quick Analysis (single hypothetical flow) + Policy Experiments (past traffic)
-│   ├── 04-live-analysis.md            ← Live Policy Analysis (current flows)
-│   ├── 05-conversations.md            ← Conversations table + observations
-│   ├── 06-policy-complexities.md      ← priorities, cross-scope, effective consumer / provider
-│   ├── 07-policy-templates.md         ← policy templates
-│   └── 08-import-export.md            ← Import / Export of policies
-├── enforcement/               ← Phase 3: Enforce Policies
-│   ├── README.md
-│   ├── 01-pre-enforcement-checklist.md
-│   ├── 02-agent-readiness.md          ← Check Agent Health and Readiness to Enforce
-│   ├── 03-enable-enforcement.md       ← Enable Policy Enforcement + the Enforcement Wizard
-│   ├── 04-rollout-pattern.md          ← Monitor → Simulate → Enforce phased rollout
-│   ├── 05-platform-specific.md        ← Windows WFP · Linux iptables / nftables · containers
-│   ├── 06-verify-enforcement.md       ← Verify Enforcement Works as Expected
-│   ├── 07-modify-enforced-policies.md ← enforce new and revised policies
-│   ├── 08-policy-versions.md          ← v* and p* versioning + Policy Diff
-│   ├── 09-rollback-and-revert.md      ← revert enforced policies to an earlier version
-│   ├── 10-pause-and-emergency-disable.md ← Pause Policy Updates · Disable Policy Enforcement
-│   └── 11-monitoring-after-enforcement.md ← what to watch in the first 30 days
-├── api/                       ← Programmatic management
-│   ├── README.md
-│   ├── 01-authentication.md           ← API key + secret, OpenAPI auth
-│   ├── 02-openapi-policies.md         ← create / update / list policies via OpenAPI
-│   ├── 03-enforcement-toggle-api.md   ← enable / disable enforcement on a workspace via API
-│   ├── 04-policies-publisher-kafka.md ← Policies Publisher (Kafka) for downstream consumers
-│   └── 05-gitops-pattern.md           ← managing policy as code
-└── operations/                ← Day-2 operations specific to policy
-    ├── README.md
-    ├── 01-policy-drift.md
-    ├── 02-version-history.md          ← Activity Logs and Version History
-    ├── 03-troubleshooting-blocked-flows.md
-    ├── 04-evidence-and-audit.md       ← evidence buckets per policy
-    ├── 05-handover-runbook.md
-    └── 06-compliance-companion.md     ← pairing with CSW-Compliance-Mapping
-```
+- [`README.md`](./README.md) — you are here (overview + lifecycle map)
+- [`INDEX.md`](./INDEX.md) — jump table by phase / by question
+- [`docs/`](./docs/) — Background concepts (read first)
+  - [`00-official-references.md`](./docs/00-official-references.md) — Cisco doc cross-reference (read this first)
+  - [`01-prerequisites.md`](./docs/01-prerequisites.md) — scopes, labelling, agents in Visibility, flow-data window
+  - [`02-segmentation-basics.md`](./docs/02-segmentation-basics.md) — what a segmentation policy actually is in CSW
+  - [`03-workspaces.md`](./docs/03-workspaces.md) — workspaces are the unit of policy management
+  - [`04-policy-attributes.md`](./docs/04-policy-attributes.md) — attributes, rank, inheritance, consumer / provider
+  - [`05-decision-matrix.md`](./docs/05-decision-matrix.md) — discover automatically vs. author manually
+- [`discovery/`](./discovery/) — Phase 1: Application Dependency Mapping (ADM)
+  - [`README.md`](./discovery/README.md)
+  - [`01-prepare-scope.md`](./discovery/01-prepare-scope.md) — scope tree shape, labelling, inventory filters
+  - [`02-flow-collection-window.md`](./discovery/02-flow-collection-window.md) — how long to collect, what to look for
+  - [`03-run-adm.md`](./discovery/03-run-adm.md) — run ADM, refine, iterate
+  - [`04-clusters-and-inventory-filters.md`](./discovery/04-clusters-and-inventory-filters.md) — grouping workloads
+  - [`05-flow-filters.md`](./discovery/05-flow-filters.md) — include / exclude filters
+  - [`06-external-dependencies.md`](./discovery/06-external-dependencies.md) — handle external dependencies
+  - [`07-f5-adm.md`](./discovery/07-f5-adm.md) — F5 load-balancer-aware ADM
+  - [`08-discovery-anti-patterns.md`](./discovery/08-discovery-anti-patterns.md) — common mistakes to avoid
+- [`analysis/`](./analysis/) — Phase 2: Review and Analyze Policies
+  - [`README.md`](./analysis/README.md)
+  - [`01-review-discovered-policies.md`](./analysis/01-review-discovered-policies.md) — interpret what ADM produced
+  - [`02-policy-visual.md`](./analysis/02-policy-visual.md) — Policy Visual Representation
+  - [`03-quick-analysis.md`](./analysis/03-quick-analysis.md) — Quick Analysis (single hypothetical flow) + Policy Experiments (past traffic)
+  - [`04-live-analysis.md`](./analysis/04-live-analysis.md) — Live Policy Analysis (current flows)
+  - [`05-conversations.md`](./analysis/05-conversations.md) — Conversations table + observations
+  - [`06-policy-complexities.md`](./analysis/06-policy-complexities.md) — priorities, cross-scope, effective consumer / provider
+  - [`07-policy-templates.md`](./analysis/07-policy-templates.md) — policy templates
+  - [`08-import-export.md`](./analysis/08-import-export.md) — Import / Export of policies
+- [`enforcement/`](./enforcement/) — Phase 3: Enforce Policies
+  - [`README.md`](./enforcement/README.md)
+  - [`01-pre-enforcement-checklist.md`](./enforcement/01-pre-enforcement-checklist.md)
+  - [`02-agent-readiness.md`](./enforcement/02-agent-readiness.md) — Check Agent Health and Readiness to Enforce
+  - [`03-enable-enforcement.md`](./enforcement/03-enable-enforcement.md) — Enable Policy Enforcement + the Enforcement Wizard
+  - [`04-rollout-pattern.md`](./enforcement/04-rollout-pattern.md) — Monitor → Simulate → Enforce phased rollout
+  - [`05-platform-specific.md`](./enforcement/05-platform-specific.md) — Windows WFP · Linux iptables / nftables · containers
+  - [`06-verify-enforcement.md`](./enforcement/06-verify-enforcement.md) — Verify Enforcement Works as Expected
+  - [`07-modify-enforced-policies.md`](./enforcement/07-modify-enforced-policies.md) — enforce new and revised policies
+  - [`08-policy-versions.md`](./enforcement/08-policy-versions.md) — v* and p* versioning + Policy Diff
+  - [`09-rollback-and-revert.md`](./enforcement/09-rollback-and-revert.md) — revert enforced policies to an earlier version
+  - [`10-pause-and-emergency-disable.md`](./enforcement/10-pause-and-emergency-disable.md) — Pause Policy Updates · Disable Policy Enforcement
+  - [`11-monitoring-after-enforcement.md`](./enforcement/11-monitoring-after-enforcement.md) — what to watch in the first 30 days
+- [`api/`](./api/) — Programmatic management
+  - [`README.md`](./api/README.md)
+  - [`01-authentication.md`](./api/01-authentication.md) — API key + secret, OpenAPI auth
+  - [`02-openapi-policies.md`](./api/02-openapi-policies.md) — create / update / list policies via OpenAPI
+  - [`03-enforcement-toggle-api.md`](./api/03-enforcement-toggle-api.md) — enable / disable enforcement on a workspace via API
+  - [`04-policies-publisher-kafka.md`](./api/04-policies-publisher-kafka.md) — Policies Publisher (Kafka) for downstream consumers
+  - [`05-gitops-pattern.md`](./api/05-gitops-pattern.md) — managing policy as code
+- [`operations/`](./operations/) — Day-2 operations specific to policy
+  - [`README.md`](./operations/README.md)
+  - [`01-policy-drift.md`](./operations/01-policy-drift.md)
+  - [`02-version-history.md`](./operations/02-version-history.md) — Activity Logs and Version History
+  - [`03-troubleshooting-blocked-flows.md`](./operations/03-troubleshooting-blocked-flows.md)
+  - [`04-evidence-and-audit.md`](./operations/04-evidence-and-audit.md) — evidence buckets per policy
+  - [`05-handover-runbook.md`](./operations/05-handover-runbook.md)
+  - [`06-compliance-companion.md`](./operations/06-compliance-companion.md) — pairing with CSW-Compliance-Mapping
 
 ---
 
