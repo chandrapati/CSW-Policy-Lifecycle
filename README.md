@@ -196,7 +196,10 @@ CSW-Policy-Lifecycle/
    [`docs/04-policy-attributes.md`](./docs/04-policy-attributes.md).**
    Workspaces, scope tree, policy rank (Absolute / Default /
    Catch-All), inheritance, and consumer / provider are the
-   five concepts every other page in this repo assumes.
+   five concepts every other page in this repo assumes. For the
+   common *"can CSW segment on URLs / FQDNs?"* question, see
+   [`docs/06-fqdn-and-domain-policy.md`](./docs/06-fqdn-and-domain-policy.md)
+   (FQDN/domain policy yes since 3.9; URL/path no).
 3. **Pick a path from
    [`docs/05-decision-matrix.md`](./docs/05-decision-matrix.md).**
    Most apps go through automatic policy discovery (ADM); a few

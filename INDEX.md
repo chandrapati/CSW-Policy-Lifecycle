@@ -28,6 +28,7 @@
 | **Policy rank** — Absolute, Default, Catch-All | [`docs/04-policy-attributes.md`](./docs/04-policy-attributes.md) |
 | **Policy inheritance** through the scope tree | [`docs/04-policy-attributes.md`](./docs/04-policy-attributes.md) |
 | **Consumer and provider** semantics | [`docs/04-policy-attributes.md`](./docs/04-policy-attributes.md) |
+| **FQDN / domain-based policy** (and why URL/path is *not* supported) | [`docs/06-fqdn-and-domain-policy.md`](./docs/06-fqdn-and-domain-policy.md) |
 | **ADM** — Application Dependency Mapping | [`discovery/03-run-adm.md`](./discovery/03-run-adm.md) |
 | **Clusters** vs **Inventory Filters** | [`discovery/04-clusters-and-inventory-filters.md`](./discovery/04-clusters-and-inventory-filters.md) |
 | **Conversations** | [`analysis/05-conversations.md`](./analysis/05-conversations.md) |
@@ -50,6 +51,7 @@
 | *"Where is the official Cisco documentation?"* | [`docs/00-official-references.md`](./docs/00-official-references.md) — links the 4.0 On-Prem and SaaS User Guides plus the Manage Policy Lifecycle, Manage Inventory, OpenAPIs, and Compatibility Matrix pages |
 | *"My agents are installed; what do I do next to get to a policy?"* | [`docs/01-prerequisites.md`](./docs/01-prerequisites.md) → [`discovery/01-prepare-scope.md`](./discovery/01-prepare-scope.md) |
 | *"How do I structure my scope tree?"* | [`discovery/01-prepare-scope.md`](./discovery/01-prepare-scope.md) |
+| *"Can CSW segment on URLs or FQDNs?"* | [`docs/06-fqdn-and-domain-policy.md`](./docs/06-fqdn-and-domain-policy.md) — FQDN/domain yes (3.9+), URL/path no |
 | *"How long should I collect flow data before running ADM?"* | [`discovery/02-flow-collection-window.md`](./discovery/02-flow-collection-window.md) |
 | *"How do I run ADM and what knobs matter?"* | [`discovery/03-run-adm.md`](./discovery/03-run-adm.md) |
 | *"ADM produced too many clusters / one giant cluster — now what?"* | [`discovery/08-discovery-anti-patterns.md`](./discovery/08-discovery-anti-patterns.md) |
