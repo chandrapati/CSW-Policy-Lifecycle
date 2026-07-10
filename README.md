@@ -70,6 +70,10 @@ breaking production.
 
 ## The CSW policy lifecycle in one diagram
 
+![Cisco Secure Workload Policy Lifecycle Architecture](csw-policy-lifecycle-architecture.png)
+
+*Discovery → Analysis → Enforcement → Day-2 Operations: starting from agents in Visibility mode, ADM discovers policy from real flows, analysis validates it (Quick Analysis, Policy Experiments, Live Analysis), enforcement rolls out per-workspace via Monitor → Simulate → Enforce, and day-2 operations keep it healthy.*
+
 ```
         agents installed in Visibility (this guide assumes this)
                               │
