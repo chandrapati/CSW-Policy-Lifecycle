@@ -74,6 +74,32 @@ breaking production.
 
 *Discovery → Analysis → Enforcement → Day-2 Operations: starting from agents in Visibility mode, ADM discovers policy from real flows, analysis validates it (Quick Analysis, Policy Experiments, Live Analysis), enforcement rolls out per-workspace via Monitor → Simulate → Enforce, and day-2 operations keep it healthy.*
 
+## The one thing to understand before anything else
+
+**Only Enforce blocks traffic. Monitor and Simulate block nothing.**
+
+This is the distinction the whole methodology exists to protect. Going straight to Enforce is the single most common cause of "CSW broke production" stories, and it happens because these three look like settings when they are really a sequence of increasing commitment.
+
+![What each phase does, and which one blocks traffic](diagrams/01-what-blocks.svg)
+
+*Monitor observes. Simulate rehearses, where the release supports pre-staging rules on the host. Enforce is the first phase in which a non-matching flow is actually dropped.*
+
+| Phase | What changes | Traffic blocked? |
+|---|---|---|
+| **Monitor** | Nothing. The agent reports flows and the cluster evaluates policy against them, reporting what *would* be rejected | No |
+| **Simulate** | The host firewall is updated to reflect the policy **only where your release supports a pre-stage mode** — agent mode names vary by release, so verify yours. Actions are suppressed | No |
+| **Enforce** | The host firewall enforces the rules. Flows that match no Allow are dropped per the Catch-All | **Yes** |
+
+Two consequences follow. First, **Simulate and Monitor are not the same thing** — Monitor catches what the cluster sees, Simulate catches what the agent sees, and the two views differ because the agent sees flows the cluster may not. Second, the exit criteria between phases are evidence, not checkboxes: if you cannot show the Live Analysis export and the healthy-agent count, you are not ready to move.
+
+The full pattern, with timelines, tier sequencing and per-phase rollback, is in [`enforcement/04-rollout-pattern.md`](./enforcement/04-rollout-pattern.md).
+
+## From observed traffic to an enforced rule
+
+![From a discovered version to an enforced rule](diagrams/02-version-flow.svg)
+
+*ADM produces a discovered version (**v\***). Analysis turns it into a published version (**p\***). Nothing reaches a host until the workspace holding that version is enforced — publishing alone changes no firewall anywhere.*
+
 ```
         agents installed in Visibility (this guide assumes this)
                               │
