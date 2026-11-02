@@ -80,7 +80,7 @@ breaking production.
 
 This is the distinction the whole methodology exists to protect. Going straight to Enforce is the single most common cause of "CSW broke production" stories, and it happens because these three look like settings when they are really a sequence of increasing commitment.
 
-![What each phase does, and which one blocks traffic](diagrams/01-what-blocks.svg)
+![Only Enforce blocks traffic](csw-only-enforce-blocks.png)
 
 *Monitor observes. Simulate rehearses, where the release supports pre-staging rules on the host. Enforce is the first phase in which a non-matching flow is actually dropped.*
 
@@ -96,7 +96,7 @@ The full pattern, with timelines, tier sequencing and per-phase rollback, is in 
 
 ## From observed traffic to an enforced rule
 
-![From a discovered version to an enforced rule](diagrams/02-version-flow.svg)
+![From observed traffic to an enforced rule](csw-version-to-enforcement.png)
 
 *ADM produces a discovered version (**v\***). Analysis turns it into a published version (**p\***). Nothing reaches a host until the workspace holding that version is enforced — publishing alone changes no firewall anywhere.*
 

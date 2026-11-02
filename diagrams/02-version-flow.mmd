@@ -1,7 +1,0 @@
-flowchart LR
-    A["ADM discovers policy<br/>from observed flows"] --> B["Discovered version<br/>v*"]
-    B --> C["Review and analyse<br/>Quick Analysis, Policy Experiments,<br/>Live Policy Analysis"]
-    C --> D["Published version<br/>p*"]
-    D --> E{"Workspace enforced?"}
-    E -- "No" --> F["Analysis only.<br/>Nothing reaches the hosts"]
-    E -- "Yes" --> G["Rendered to the<br/>host firewall"]
